@@ -6,8 +6,9 @@ Create a `.env` file in the root directory with the following variables:
 # XANO Backend API
 VITE_API_BASE_URL=https://x8ki-letl-twmt.n7.xano.io/api:Gw3_pzGF
 
-# WebSocket URL (if different from API base)
-VITE_WS_URL=wss://your-xano-instance.xano.app/ws
+# XANO WebSocket Connection
+VITE_WS_CONNECTION_HASH=04aMV5lTFz_cBcFaEa8SNE7bCyI
+VITE_WS_BASE_URL=wss://x8ki-letl-twmt.n7.xano.net
 
 # Heater Device UID
 VITE_HEATER_DEVICE_UID=345F4537C1B0

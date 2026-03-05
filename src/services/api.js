@@ -68,9 +68,11 @@ api.interceptors.response.use(
       isRefreshing = true
 
       try {
+        console.log('🔄 Attempting token refresh due to 401 error...')
         const result = await refreshTokens()
         
         if (result.success) {
+          console.log('✅ Token refresh successful, retrying original request')
           // Update the original request with new token
           originalRequest.headers.Authorization = `Bearer ${result.accessToken}`
           
@@ -80,14 +82,16 @@ api.interceptors.response.use(
           // Retry the original request
           return api(originalRequest)
         } else {
+          console.error('❌ Token refresh failed:', result.error)
           // Refresh failed - clear tokens and redirect to login
-          processQueue(new Error('Token refresh failed'))
+          processQueue(new Error(result.error || 'Token refresh failed'))
           localStorage.removeItem('authToken')
           localStorage.removeItem('refreshToken')
           window.location.href = '/login'
-          return Promise.reject(error)
+          return Promise.reject(new Error(result.error || 'Token refresh failed'))
         }
       } catch (refreshError) {
+        console.error('❌ Token refresh exception:', refreshError)
         // Refresh failed - clear tokens and redirect to login
         processQueue(refreshError)
         localStorage.removeItem('authToken')

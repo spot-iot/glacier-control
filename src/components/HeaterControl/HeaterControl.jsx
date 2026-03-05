@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Box,
   Text,
@@ -11,15 +11,44 @@ import {
 import PowerToggle from './PowerToggle'
 import LevelSlider from './LevelSlider'
 import { sendPowerCommand, sendLevelCommand } from '../../services/heaterService'
+import { useHeaterTelemetry } from '../../hooks/useHeaterTelemetry'
 
 const HeaterControl = ({ readOnly = false }) => {
   const [powerOn, setPowerOn] = useState(false)
   const [level, setLevel] = useState(5)
   const [isLoading, setIsLoading] = useState(false)
   const toast = useToast()
+  
+  // Track when user makes changes to avoid conflicts with telemetry updates
+  const userActionTimestampRef = useRef(0)
+  const isUserActionRef = useRef(false)
+
+  // Handle telemetry updates from WebSocket
+  // Use useCallback to prevent infinite re-renders
+  const handleTelemetryUpdate = useCallback((telemetry) => {
+    // Only update if telemetry is newer than last user action
+    // This prevents telemetry from overriding user's recent changes
+    if (telemetry.timestamp > userActionTimestampRef.current) {
+      // Small delay to allow user action to complete
+      setTimeout(() => {
+        if (!isUserActionRef.current) {
+          setPowerOn(telemetry.powerOn)
+          setLevel(telemetry.level)
+        }
+        isUserActionRef.current = false
+      }, 1000) // 1 second grace period for user actions
+    }
+  }, [])
+
+  // Connect to WebSocket telemetry (optional - app works without it)
+  const { isConnected, lastUpdate } = useHeaterTelemetry(handleTelemetryUpdate)
 
   const handlePowerChange = async (newPowerState) => {
     if (readOnly) return
+
+    // Mark as user action to prevent telemetry from overriding
+    isUserActionRef.current = true
+    userActionTimestampRef.current = Date.now()
 
     setIsLoading(true)
     const result = await sendPowerCommand(newPowerState)
@@ -32,6 +61,10 @@ const HeaterControl = ({ readOnly = false }) => {
         duration: 3000,
         isClosable: true,
       })
+      // Reset user action flag after a delay
+      setTimeout(() => {
+        isUserActionRef.current = false
+      }, 2000)
     } else {
       toast({
         title: 'Command failed',
@@ -42,6 +75,7 @@ const HeaterControl = ({ readOnly = false }) => {
       })
       // Revert toggle on error
       setPowerOn(!newPowerState)
+      isUserActionRef.current = false
     }
     setIsLoading(false)
   }
@@ -54,6 +88,10 @@ const HeaterControl = ({ readOnly = false }) => {
   const handleLevelChangeEnd = async (newLevel) => {
     if (readOnly) return
 
+    // Mark as user action to prevent telemetry from overriding
+    isUserActionRef.current = true
+    userActionTimestampRef.current = Date.now()
+
     setIsLoading(true)
     const result = await sendLevelCommand(newLevel)
 
@@ -65,6 +103,10 @@ const HeaterControl = ({ readOnly = false }) => {
         duration: 3000,
         isClosable: true,
       })
+      // Reset user action flag after a delay
+      setTimeout(() => {
+        isUserActionRef.current = false
+      }, 2000)
     } else {
       toast({
         title: 'Command failed',
@@ -75,6 +117,7 @@ const HeaterControl = ({ readOnly = false }) => {
       })
       // Revert level on error - keep current level
       // (level state is already correct, no need to change)
+      isUserActionRef.current = false
     }
     setIsLoading(false)
   }
@@ -92,7 +135,18 @@ const HeaterControl = ({ readOnly = false }) => {
           <Text fontSize="xl" fontWeight="bold" color="white">
             Heater Control
           </Text>
-          {isLoading && <Spinner size="sm" color="brand.400" />}
+          <HStack spacing={2}>
+            {isConnected && (
+              <Box
+                w={2}
+                h={2}
+                borderRadius="full"
+                bg="green.400"
+                title="WebSocket connected"
+              />
+            )}
+            {isLoading && <Spinner size="sm" color="brand.400" />}
+          </HStack>
         </HStack>
 
         {/* Power Toggle */}

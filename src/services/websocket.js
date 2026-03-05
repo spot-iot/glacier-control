@@ -1,6 +1,26 @@
 // WebSocket service for real-time updates from XANO
 // XANO has built-in WebSocket support
 
+// Get WebSocket connection details from environment
+const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'wss://x8ki-letl-twmt.n7.xano.net'
+const WS_CONNECTION_HASH = import.meta.env.VITE_WS_CONNECTION_HASH || '04aMV5lTFz_cBcFaEa8SNE7bCyI'
+
+/**
+ * Build WebSocket URL for a channel
+ * @param {string} channelName - Channel name (e.g., 'glacier_live_feed' or 'glacier_live_feed/heater-telemetry')
+ * @returns {string} Full WebSocket URL
+ */
+export const buildWebSocketURL = (channelName) => {
+  // XANO WebSocket URL format options:
+  // Option 1: wss://base-url/ws:connection-hash:channel-name
+  // Option 2: wss://base-url/ws:connection-hash (then subscribe to channel)
+  // Option 3: wss://base-url/ws/channel-name (if connection hash not needed in URL)
+  
+  // Try Option 1 first (most common)
+  // If this doesn't work, we may need to adjust based on XANO's actual format
+  return `${WS_BASE_URL}/ws:${WS_CONNECTION_HASH}:${channelName}`
+}
+
 class WebSocketService {
   constructor() {
     this.ws = null
@@ -11,11 +31,26 @@ class WebSocketService {
   }
 
   connect(url) {
+    // Disconnect existing connection if any
+    if (this.ws) {
+      try {
+        this.ws.close()
+      } catch (e) {
+        // Ignore close errors
+      }
+      this.ws = null
+    }
+
     try {
+      if (!url) {
+        console.error('WebSocket URL is required')
+        return
+      }
+
       this.ws = new WebSocket(url)
       
       this.ws.onopen = () => {
-        console.log('WebSocket connected')
+        console.log('WebSocket connected to:', url)
         this.reconnectAttempts = 0
         this.emit('connected')
       }
@@ -25,7 +60,7 @@ class WebSocketService {
           const data = JSON.parse(event.data)
           this.emit('message', data)
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error)
+          console.error('Error parsing WebSocket message:', error, event.data)
         }
       }
 
@@ -35,12 +70,13 @@ class WebSocketService {
       }
 
       this.ws.onclose = () => {
-        console.log('WebSocket disconnected')
+        console.log('WebSocket disconnected from:', url)
         this.emit('disconnected')
         this.attemptReconnect(url)
       }
     } catch (error) {
       console.error('WebSocket connection error:', error)
+      this.emit('error', error)
     }
   }
 
@@ -100,4 +136,5 @@ class WebSocketService {
 // Create singleton instance
 const wsService = new WebSocketService()
 
+// Export service (buildWebSocketURL is already exported above)
 export default wsService

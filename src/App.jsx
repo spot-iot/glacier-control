@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import PublicDashboard from './pages/PublicDashboard'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import ErrorBoundary from './components/ErrorBoundary'
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -22,26 +23,28 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Box minH="100vh" bg="#1a1a1a">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/public" element={<PublicDashboard />} />
-            <Route path="/view" element={<PublicDashboard />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </Box>
-      </Router>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <Box minH="100vh" bg="#1a1a1a">
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/public" element={<PublicDashboard />} />
+              <Route path="/view" element={<PublicDashboard />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Box>
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
 
