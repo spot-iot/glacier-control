@@ -12,7 +12,7 @@ const DEVICE_UID = import.meta.env.VITE_HEATER_DEVICE_UID || '345F4537C1B0'
  * Send a generic command to the heater
  * @param {string} commandType - Command type: "POWER", "LEVEL", "TIMESYNC"
  * @param {number} commandValue - Command value (0/1 for POWER, 1-10 for LEVEL, 1 for TIMESYNC)
- * @returns {Promise<{success: boolean, message?: string, error?: string}>}
+ * @returns {Promise<{success: boolean, commandId?: number, message?: string, error?: string}>}
  */
 export const sendCommand = async (commandType, commandValue) => {
   try {
@@ -25,8 +25,10 @@ export const sendCommand = async (commandType, commandValue) => {
       },
     })
 
+    // XANO returns: { id, created_at, device_target, command_type, command_value, status, ... }
     return {
       success: true,
+      commandId: response.data.id, // Command ID for tracking
       message: response.data?.message || 'Command sent successfully',
       data: response.data,
     }

@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { subscribeToChannel, onRealtimeConnectionChange } from '../services/xanoRealtimeSDK'
+import { usePendingCommands } from '../contexts/PendingCommandsContext'
+import { useToast } from '@chakra-ui/react'
 
 /**
  * Hook to receive heater telemetry via XANO Realtime
@@ -10,6 +12,8 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
   const [lastUpdate, setLastUpdate] = useState(null)
   const lastTimestampRef = useRef(0)
   const callbackRef = useRef(onTelemetryUpdate)
+  const { removePendingCommand, getPendingCommand } = usePendingCommands()
+  const toast = useToast()
 
   // Keep callback ref updated
   useEffect(() => {
@@ -45,49 +49,142 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
 
         console.log('📨 Received message from glacier_live_feed:', action)
         
-        // Extract telemetry data from payload.data
-        // Structure: action.payload.data = { device_uid, power_state, level, timestamp, ... }
-        let telemetry = null
-        
-        if (action && action.payload && action.payload.data) {
-          // Telemetry data is in payload.data as an object
-          telemetry = action.payload.data
-        } else if (action && action.payload && action.payload.device_uid) {
-          // Fallback: telemetry might be directly in payload
-          telemetry = action.payload
-        }
-
-        if (!telemetry) {
-          console.log('No telemetry data found in message:', action)
+        // Extract data from payload.data
+        const data = action?.payload?.data
+        if (!data) {
+          console.log('No data found in message:', action)
           return
         }
 
-        // Validate telemetry data
-        if (!telemetry.device_uid || typeof telemetry.power_state !== 'number' || typeof telemetry.level !== 'number') {
-          console.warn('Invalid telemetry data:', telemetry)
-          return
-        }
-
-        console.log('✅ Valid heater telemetry received:', telemetry)
-
-        // Only update if timestamp is newer (avoid stale data)
-        const timestamp = telemetry.timestamp || Date.now() // Use current time if no timestamp
-        if (timestamp > lastTimestampRef.current) {
-          lastTimestampRef.current = timestamp
-          setLastUpdate(new Date(timestamp))
-
-          // Call callback with telemetry data
-          if (callbackRef.current) {
-            callbackRef.current({
-              powerOn: telemetry.power_state === 1,
-              level: telemetry.level,
-              timestamp: timestamp,
-              deviceUid: telemetry.device_uid,
-            })
+        // Check if this is a command confirmation
+        if (data.type === 'command_confirmation') {
+          console.log('✅ Command confirmation received:', data)
+          
+          // Handle command confirmation
+          if (data.command_id && data.status) {
+            if (data.status === 'success') {
+              // Command succeeded - remove from pending
+              removePendingCommand(data.command_id)
+              console.log(`Command ${data.command_id} confirmed successfully`)
+              
+              // Show success toast
+              toast({
+                title: 'Command confirmed',
+                description: `${data.command_type} command executed successfully`,
+                status: 'success',
+                duration: 2000,
+                isClosable: true,
+              })
+              
+            } else if (data.status === 'failed') {
+              // Command failed - show error (retry will be handled by user if needed)
+              removePendingCommand(data.command_id)
+              
+              toast({
+                title: 'Command failed',
+                description: 'Command could not be executed. Please try again.',
+                status: 'error',
+                duration: 5000,
+                isClosable: true,
+              })
+            }
           }
+
+          // If confirmation includes current_state, use it as telemetry update
+          if (data.current_state) {
+            const telemetry = {
+              device_uid: data.device_uid,
+              power_state: data.current_state.power_state,
+              level: data.current_state.level,
+              timestamp: data.timestamp || Date.now(),
+            }
+            processTelemetry(telemetry)
+          }
+          return
+        }
+
+        // Regular telemetry data
+        if (data.device_uid && typeof data.power_state === 'number' && typeof data.level === 'number') {
+          processTelemetry(data)
+        } else {
+          console.log('Invalid telemetry data structure:', data)
         }
       } catch (error) {
         console.error('Error processing telemetry message:', error)
+      }
+    }
+
+    // Process telemetry data
+    const processTelemetry = (telemetry) => {
+      // Validate telemetry data
+      if (!telemetry.device_uid || typeof telemetry.power_state !== 'number' || typeof telemetry.level !== 'number') {
+        console.warn('Invalid telemetry data:', telemetry)
+        return
+      }
+
+      console.log('✅ Valid heater telemetry received:', telemetry)
+
+      // Check if telemetry matches any pending command (implicit confirmation)
+      const pendingPower = getPendingCommand('POWER')
+      const pendingLevel = getPendingCommand('LEVEL')
+      
+      if (pendingPower) {
+        const expectedPower = pendingPower.value === 1
+        if (telemetry.power_state === (expectedPower ? 1 : 0)) {
+          // Telemetry matches pending command - treat as confirmation
+          console.log('Telemetry matches pending POWER command - treating as confirmation')
+          removePendingCommand(pendingPower.id)
+          toast({
+            title: 'Command confirmed',
+            description: 'Power command executed successfully',
+            status: 'success',
+            duration: 2000,
+            isClosable: true,
+          })
+        }
+      }
+      
+      if (pendingLevel) {
+        if (telemetry.level === pendingLevel.value) {
+          // Telemetry matches pending command - treat as confirmation
+          console.log('Telemetry matches pending LEVEL command - treating as confirmation')
+          removePendingCommand(pendingLevel.id)
+          toast({
+            title: 'Command confirmed',
+            description: `Level ${telemetry.level} confirmed`,
+            status: 'success',
+            duration: 2000,
+            isClosable: true,
+          })
+        } else {
+          // Telemetry differs from pending - command may have failed
+          console.log('Telemetry differs from pending LEVEL command - command may have failed')
+          toast({
+            title: 'State mismatch',
+            description: 'Command may have failed - showing current device state',
+            status: 'warning',
+            duration: 5000,
+            isClosable: true,
+          })
+          removePendingCommand(pendingLevel.id)
+        }
+      }
+
+      // Only update if timestamp is newer (avoid stale data)
+      const timestamp = telemetry.timestamp || Date.now()
+      if (timestamp > lastTimestampRef.current) {
+        lastTimestampRef.current = timestamp
+        setLastUpdate(new Date(timestamp))
+
+        // Call callback with telemetry data
+        if (callbackRef.current) {
+          callbackRef.current({
+            powerOn: telemetry.power_state === 1,
+            level: telemetry.level,
+            timestamp: timestamp,
+            deviceUid: telemetry.device_uid,
+          })
+        }
       }
     }
 

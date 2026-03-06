@@ -1,31 +1,37 @@
-import { VStack, HStack, Text, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Box } from '@chakra-ui/react'
+import { VStack, HStack, Text, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Box, Spinner } from '@chakra-ui/react'
 
-const LevelSlider = ({ level, onChange, onChangeEnd, isLoading, readOnly }) => {
+const LevelSlider = ({ level, onChange, onChangeEnd, isPending, pendingValue, readOnly }) => {
+  const displayValue = isPending && pendingValue !== undefined ? pendingValue : level
+  const isDisabled = isPending || readOnly
+
   return (
-    <Box>
+    <Box opacity={isPending ? 0.5 : 1} transition="opacity 0.2s">
       <VStack spacing={2} align="stretch">
         <HStack justify="space-between">
           <Text color="gray.300" fontSize="md" fontWeight="medium">
             Level:
           </Text>
-          <Text
-            color="brand.400"
-            fontSize="lg"
-            fontWeight="bold"
-            minW="40px"
-            textAlign="right"
-          >
-            {level}
-          </Text>
+          <HStack spacing={2}>
+            <Text
+              color="brand.400"
+              fontSize="lg"
+              fontWeight="bold"
+              minW="40px"
+              textAlign="right"
+            >
+              {displayValue}
+            </Text>
+            {isPending && <Spinner size="sm" color="yellow.400" />}
+          </HStack>
         </HStack>
         <Slider
-          value={level}
+          value={displayValue}
           min={1}
           max={10}
           step={1}
           onChange={onChange}
           onChangeEnd={onChangeEnd}
-          isDisabled={isLoading || readOnly}
+          isDisabled={isDisabled}
           colorScheme="brand"
           size="lg"
         >
@@ -38,6 +44,11 @@ const LevelSlider = ({ level, onChange, onChangeEnd, isLoading, readOnly }) => {
           <Text>1</Text>
           <Text>10</Text>
         </HStack>
+        {isPending && (
+          <Text fontSize="xs" color="yellow.400" textAlign="center">
+            Waiting for confirmation...
+          </Text>
+        )}
       </VStack>
       {readOnly && (
         <Text fontSize="xs" color="gray.500" mt={2}>

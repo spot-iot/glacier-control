@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import PublicDashboard from './pages/PublicDashboard'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { PendingCommandsProvider } from './contexts/PendingCommandsContext'
 import ErrorBoundary from './components/ErrorBoundary'
 
 // Protected Route Component
@@ -25,7 +26,8 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <Router>
+        <PendingCommandsProvider>
+          <Router>
           <Box minH="100vh" bg="#1a1a1a">
             <Routes>
               <Route path="/login" element={<Login />} />
@@ -43,6 +45,7 @@ function App() {
             </Routes>
           </Box>
         </Router>
+        </PendingCommandsProvider>
       </AuthProvider>
     </ErrorBoundary>
   )
