@@ -12,7 +12,7 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
   const [lastUpdate, setLastUpdate] = useState(null)
   const lastTimestampRef = useRef(0)
   const callbackRef = useRef(onTelemetryUpdate)
-  const { removePendingCommand, getPendingCommand } = usePendingCommands()
+  const { removePendingCommand, getPendingCommand, hasPendingCommandId } = usePendingCommands()
   const toast = useToast()
 
   // Keep callback ref updated
@@ -62,15 +62,22 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
           
           // Handle command confirmation
           if (data.command_id && data.status) {
+            // Only process if command is still pending (hasn't timed out)
+            if (!hasPendingCommandId(data.command_id)) {
+              console.log(`Command ${data.command_id} confirmation received but command is no longer pending (likely timed out)`)
+              return // Don't process confirmation for commands that have already timed out
+            }
+            
             if (data.status === 'success') {
               // Command succeeded - remove from pending
               removePendingCommand(data.command_id)
               console.log(`Command ${data.command_id} confirmed successfully`)
               
               // Show success toast
+              const commandType = data.command_type || 'Command'
               toast({
                 title: 'Command confirmed',
-                description: `${data.command_type} command executed successfully`,
+                description: `${commandType} command executed successfully`,
                 status: 'success',
                 duration: 2000,
                 isClosable: true,

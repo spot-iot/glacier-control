@@ -30,7 +30,7 @@ export const PendingCommandsProvider = ({ children }) => {
       return newMap
     })
 
-    // Set timeout (40 seconds)
+    // Set timeout (60 seconds / 1 minute)
     const timer = setTimeout(() => {
       setPendingCommands((prev) => {
         const newMap = new Map(prev)
@@ -45,10 +45,16 @@ export const PendingCommandsProvider = ({ children }) => {
         return newMap
       })
       clearTimeoutTimer(commandId)
-    }, 40000) // 40 seconds
+    }, 60000) // 60 seconds (1 minute)
 
     timeoutTimersRef.current.set(commandId, timer)
   }, [clearTimeoutTimer])
+
+  // Check if a command ID exists in pending commands (and hasn't timed out)
+  const hasPendingCommandId = useCallback((commandId) => {
+    const command = pendingCommands.get(commandId)
+    return command && command.status !== 'timeout'
+  }, [pendingCommands])
 
   // Remove a pending command (when confirmed or failed)
   const removePendingCommand = useCallback((commandId) => {
@@ -94,6 +100,7 @@ export const PendingCommandsProvider = ({ children }) => {
     addPendingCommand,
     removePendingCommand,
     hasPendingCommand,
+    hasPendingCommandId,
     getPendingCommand,
   }
 
