@@ -651,6 +651,7 @@ const HeaterControl = ({ readOnly = false }) => {
         isOpen={isLevelModalOpen}
         onClose={() => setIsLevelModalOpen(false)}
         currentLevel={level}
+        pendingLevel={pendingLevelCommand?.value}
         onSelectLevel={handleLevelSelect}
       />
 
