@@ -18,7 +18,9 @@ import {
   Lightning,
   BatteryCharging,
   Wind,
-  WaveSine
+  WaveSine,
+  DropHalf,
+  Clock
 } from 'phosphor-react'
 import PowerToggle from './PowerToggle'
 import LevelSelectModal from './LevelSelectModal'
@@ -38,6 +40,8 @@ const HeaterControl = ({ readOnly = false }) => {
   // Dummy data states
   const [lifetimeFuel, setLifetimeFuel] = useState(0)
   const [fuelConsumptionRate, setFuelConsumptionRate] = useState(0)
+  const [fuelGauge, setFuelGauge] = useState(0)
+  const [hoursTillEmpty, setHoursTillEmpty] = useState(0)
   const [totalRuntime, setTotalRuntime] = useState(0)
   const [sessionStartTime, setSessionStartTime] = useState(null)
   const [sessionRuntime, setSessionRuntime] = useState(0)
@@ -145,6 +149,8 @@ const HeaterControl = ({ readOnly = false }) => {
     // Initialize with random values
     setLifetimeFuel((Math.random() * 500 + 100).toFixed(1))
     setFuelConsumptionRate((Math.random() * 0.5 + 0.1).toFixed(2))
+    setFuelGauge((Math.random() * 50 + 20).toFixed(1)) // 20-70 L or %
+    setHoursTillEmpty((Math.random() * 100 + 10).toFixed(1)) // 10-110 hrs
     setTotalRuntime((Math.random() * 1000 + 100).toFixed(1))
     setVoltage((Math.random() * 5 + 10).toFixed(1)) // 10-15V
     setCurrent((Math.random() * 2 + 0.5).toFixed(2)) // 0.5-2.5A
@@ -155,6 +161,8 @@ const HeaterControl = ({ readOnly = false }) => {
     const interval = setInterval(() => {
       setLifetimeFuel((Math.random() * 500 + 100).toFixed(1))
       setFuelConsumptionRate((Math.random() * 0.5 + 0.1).toFixed(2))
+      setFuelGauge((Math.random() * 50 + 20).toFixed(1))
+      setHoursTillEmpty((Math.random() * 100 + 10).toFixed(1))
       setTotalRuntime((Math.random() * 1000 + 100).toFixed(1))
       setVoltage((Math.random() * 5 + 10).toFixed(1))
       setCurrent((Math.random() * 2 + 0.5).toFixed(2))
@@ -346,18 +354,34 @@ const HeaterControl = ({ readOnly = false }) => {
           </HStack>
         </HStack>
 
-        {/* Fuel Row: Lifetime and Rate */}
+        {/* Fuel Row 1: Gauge and Lifetime */}
         <HStack spacing={4} align="center" justify="space-between">
+          <HStack spacing={2} align="center">
+            <DropHalf size={18} weight="fill" color="#38B2AC" />
+            <Text color="#38B2AC" fontSize="md" fontWeight="semibold">
+              {fuelGauge} L
+            </Text>
+          </HStack>
           <HStack spacing={2} align="center">
             <GasPump size={18} weight="fill" color="#38B2AC" />
             <Text color="#38B2AC" fontSize="md" fontWeight="semibold">
               {lifetimeFuel} L
             </Text>
           </HStack>
+        </HStack>
+
+        {/* Fuel Row 2: Rate and Hours Till Empty */}
+        <HStack spacing={4} align="center" justify="space-between">
           <HStack spacing={2} align="center">
             <Gauge size={18} weight="fill" color="#38B2AC" />
             <Text color="#38B2AC" fontSize="md" fontWeight="semibold">
               {fuelConsumptionRate} L/hr
+            </Text>
+          </HStack>
+          <HStack spacing={2} align="center">
+            <Clock size={18} weight="fill" color="#38B2AC" />
+            <Text color="#38B2AC" fontSize="md" fontWeight="semibold">
+              {hoursTillEmpty} hrs
             </Text>
           </HStack>
         </HStack>
