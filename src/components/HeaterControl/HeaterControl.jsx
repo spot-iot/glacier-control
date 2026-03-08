@@ -14,7 +14,8 @@ import { usePendingCommands } from '../../contexts/PendingCommandsContext'
 
 const HeaterControl = ({ readOnly = false }) => {
   const [powerOn, setPowerOn] = useState(false)
-  const [level, setLevel] = useState(5)
+  const [level, setLevel] = useState(5) // Confirmed level from telemetry
+  const [sliderValue, setSliderValue] = useState(5) // Slider position during drag
   const [runStep, setRunStep] = useState('Unknown')
   const toast = useToast()
   const { addPendingCommand, removePendingCommand, getPendingCommand, pendingCommands } = usePendingCommands()
@@ -37,9 +38,10 @@ const HeaterControl = ({ readOnly = false }) => {
 
   // Handle telemetry updates from WebSocket
   const handleTelemetryUpdate = useCallback((telemetry) => {
-    // Update UI with latest telemetry
+    // Update UI with latest telemetry (confirmed state)
     setPowerOn(telemetry.powerOn)
     setLevel(telemetry.level)
+    setSliderValue(telemetry.level) // Sync slider position with confirmed level
     if (telemetry.runStep) {
       setRunStep(telemetry.runStep)
     }
@@ -97,7 +99,8 @@ const HeaterControl = ({ readOnly = false }) => {
 
   const handleLevelChange = (newLevel) => {
     if (readOnly) return
-    // Don't update UI - wait for confirmed telemetry
+    // Update slider position during drag (visual feedback only)
+    setSliderValue(newLevel)
   }
 
   const handleLevelChangeEnd = async (newLevel) => {
@@ -166,7 +169,7 @@ const HeaterControl = ({ readOnly = false }) => {
 
         {/* Level Slider */}
         <LevelSlider
-          level={level}
+          level={sliderValue}
           onChange={handleLevelChange}
           onChangeEnd={handleLevelChangeEnd}
           readOnly={readOnly}
