@@ -15,6 +15,7 @@ import { usePendingCommands } from '../../contexts/PendingCommandsContext'
 const HeaterControl = ({ readOnly = false }) => {
   const [powerOn, setPowerOn] = useState(false)
   const [level, setLevel] = useState(5)
+  const [runStep, setRunStep] = useState('Unknown')
   const toast = useToast()
   const { addPendingCommand, removePendingCommand, getPendingCommand, pendingCommands } = usePendingCommands()
   
@@ -39,6 +40,9 @@ const HeaterControl = ({ readOnly = false }) => {
     // Update UI with latest telemetry
     setPowerOn(telemetry.powerOn)
     setLevel(telemetry.level)
+    if (telemetry.runStep) {
+      setRunStep(telemetry.runStep)
+    }
   }, [])
 
   // Handle timeout commands
@@ -161,6 +165,7 @@ const HeaterControl = ({ readOnly = false }) => {
         <PowerToggle
           isOn={powerOn}
           onChange={handlePowerChange}
+          runStep={runStep}
           readOnly={readOnly}
         />
 

@@ -122,6 +122,7 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
         // Extract heater state
         const powerState = heartbeat.heater?.system?.power
         const level = heartbeat.heater?.performance?.current_gear
+        const runStep = heartbeat.heater?.system?.run_step
         const deviceUid = heartbeat.device_uid
         const timestamp = heartbeat.timestamp_utc_ms
 
@@ -161,6 +162,7 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
             callbackRef.current({
               powerOn,
               level,
+              runStep: runStep || 'Unknown',
               timestamp,
               deviceUid,
             })
