@@ -79,13 +79,24 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
               
               removePendingCommand(commandId)
               
-              toast({
-                title: 'Command confirmed',
-                description: `${commandType} command executed successfully`,
-                status: 'success',
-                duration: 2000,
-                isClosable: true,
-              })
+              // Special handling for TIMESYNC command
+              if (commandType === 'TIMESYNC') {
+                toast({
+                  title: 'Time synced',
+                  description: 'Local time is now synced with UTC time',
+                  status: 'success',
+                  duration: 3000,
+                  isClosable: true,
+                })
+              } else {
+                toast({
+                  title: 'Command confirmed',
+                  description: `${commandType} command executed successfully`,
+                  status: 'success',
+                  duration: 2000,
+                  isClosable: true,
+                })
+              }
             } else if (commandStatus === 'FAILED') {
               // Command failed - check for error codes in heater.system
               const errorCode = heartbeat.heater?.system?.error_code

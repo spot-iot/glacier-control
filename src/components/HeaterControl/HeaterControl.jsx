@@ -6,6 +6,15 @@ import {
   useToast,
   HStack,
   IconButton,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  Button,
+  useDisclosure,
 } from '@chakra-ui/react'
 import { EditIcon } from '@chakra-ui/icons'
 import { 
@@ -20,11 +29,12 @@ import {
   Wind,
   WaveSine,
   DropHalf,
-  Clock
+  Clock,
+  ArrowsLeftRight
 } from 'phosphor-react'
 import PowerToggle from './PowerToggle'
 import LevelSelectModal from './LevelSelectModal'
-import { sendPowerCommand, sendLevelCommand } from '../../services/heaterService'
+import { sendPowerCommand, sendLevelCommand, sendTimeSyncCommand } from '../../services/heaterService'
 import { useHeaterTelemetry } from '../../hooks/useHeaterTelemetry'
 import { usePendingCommands } from '../../contexts/PendingCommandsContext'
 
@@ -49,8 +59,10 @@ const HeaterControl = ({ readOnly = false }) => {
   const [current, setCurrent] = useState(0)
   const [fanSpeed, setFanSpeed] = useState(0)
   const [pumpHz, setPumpHz] = useState(0)
+  const [currentTime, setCurrentTime] = useState('')
   
   const [isLevelModalOpen, setIsLevelModalOpen] = useState(false)
+  const { isOpen: isTimeSyncModalOpen, onOpen: onTimeSyncModalOpen, onClose: onTimeSyncModalClose } = useDisclosure()
   const toast = useToast()
   const { addPendingCommand, removePendingCommand, getPendingCommand, pendingCommands } = usePendingCommands()
   
@@ -117,6 +129,20 @@ const HeaterControl = ({ readOnly = false }) => {
       setSessionRuntime(0)
     }
   }, [powerOn, sessionStartTime])
+
+  // Update current time (UTC)
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date()
+      const utcTime = now.toUTCString().split(' ')[4] // Get HH:MM:SS from UTC string
+      setCurrentTime(utcTime)
+    }
+    
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
+    
+    return () => clearInterval(interval)
+  }, [])
 
   // Update seconds since last refresh
   useEffect(() => {
@@ -261,6 +287,36 @@ const HeaterControl = ({ readOnly = false }) => {
     }
   }
 
+  const handleTimeSync = async () => {
+    onTimeSyncModalClose()
+    
+    const result = await sendTimeSyncCommand()
+    
+    if (result.success && result.commandId) {
+      // Add to pending commands
+      addPendingCommand(result.commandId, {
+        type: 'TIMESYNC',
+        value: 1,
+      })
+      
+      toast({
+        title: 'Time sync command sent',
+        description: 'Waiting for heater confirmation...',
+        status: 'info',
+        duration: 3000,
+        isClosable: true,
+      })
+    } else {
+      toast({
+        title: 'Sync failed',
+        description: result.error || 'Failed to send time sync command',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    }
+  }
+
   return (
     <Box
       bg="gray.800"
@@ -284,6 +340,23 @@ const HeaterControl = ({ readOnly = false }) => {
             />
           )}
         </HStack>
+
+        {/* Current Time (UTC) with Sync Button */}
+        {!readOnly && (
+          <HStack spacing={2} align="center" justify="center">
+            <Text color="gray.300" fontSize="sm" fontWeight="medium">
+              {currentTime} UTC
+            </Text>
+            <IconButton
+              icon={<ArrowsLeftRight size={16} />}
+              size="xs"
+              variant="ghost"
+              colorScheme="brand"
+              aria-label="Sync time"
+              onClick={onTimeSyncModalOpen}
+            />
+          </HStack>
+        )}
 
         {/* Power Toggle */}
         <PowerToggle
@@ -418,7 +491,7 @@ const HeaterControl = ({ readOnly = false }) => {
           </HStack>
         </HStack>
 
-        {/* Seconds Since Last Refresh */}
+        {/* Seconds Since Last Refresh - Moved to bottom */}
         <Box textAlign="center" pt={2}>
           <Text color="gray.500" fontSize="xs">
             {secondsSinceRefresh}s since last refresh
@@ -444,15 +517,35 @@ const HeaterControl = ({ readOnly = false }) => {
             Controls are disabled in public view
           </Text>
         )}
-
-        {/* Level Select Modal */}
-        <LevelSelectModal
-          isOpen={isLevelModalOpen}
-          onClose={() => setIsLevelModalOpen(false)}
-          currentLevel={level}
-          onSelectLevel={handleLevelSelect}
-        />
       </VStack>
+
+      {/* Level Select Modal */}
+      <LevelSelectModal
+        isOpen={isLevelModalOpen}
+        onClose={() => setIsLevelModalOpen(false)}
+        currentLevel={level}
+        onSelectLevel={handleLevelSelect}
+      />
+
+      {/* Time Sync Confirmation Modal */}
+      <Modal isOpen={isTimeSyncModalOpen} onClose={onTimeSyncModalClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Sync Time</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>Sync the local system with UTC time?</Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onTimeSyncModalClose}>
+              Cancel
+            </Button>
+            <Button colorScheme="brand" onClick={handleTimeSync}>
+              Confirm
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   )
 }
