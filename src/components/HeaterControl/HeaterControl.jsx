@@ -68,9 +68,6 @@ const HeaterControl = ({ readOnly = false }) => {
   const handlePowerChange = async (newPowerState) => {
     if (readOnly) return
 
-    // Optimistic update
-    setPowerOn(newPowerState)
-
     const result = await sendPowerCommand(newPowerState)
 
     if (result.success && result.commandId) {
@@ -88,8 +85,6 @@ const HeaterControl = ({ readOnly = false }) => {
         isClosable: true,
       })
     } else {
-      // Revert optimistic update on failure
-      setPowerOn(!newPowerState)
       toast({
         title: 'Command failed',
         description: result.error || 'Failed to send power command',
@@ -102,7 +97,7 @@ const HeaterControl = ({ readOnly = false }) => {
 
   const handleLevelChange = (newLevel) => {
     if (readOnly) return
-    setLevel(newLevel)
+    // Don't update UI - wait for confirmed telemetry
   }
 
   const handleLevelChangeEnd = async (newLevel) => {
