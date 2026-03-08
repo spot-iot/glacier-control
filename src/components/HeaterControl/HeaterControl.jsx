@@ -19,7 +19,7 @@ import {
 } from '@chakra-ui/react'
 import { EditIcon } from '@chakra-ui/icons'
 import { 
-  Flame, 
+  Fire, 
   GasPump, 
   Gauge, 
   Hourglass, 
@@ -27,12 +27,12 @@ import {
   Gear,
   Lightning,
   BatteryCharging,
-  Wind,
   WaveSine,
   DropHalf,
-  Clock,
   ArrowsLeftRight
 } from 'phosphor-react'
+import FanIcon from '../Icons/FanIcon'
+import GasCanIcon from '../Icons/GasCanIcon'
 import PowerToggle from './PowerToggle'
 import LevelSelectModal from './LevelSelectModal'
 import { sendPowerCommand, sendLevelCommand, sendTimeSyncCommand, sendModeCommand } from '../../services/heaterService'
@@ -525,7 +525,7 @@ const HeaterControl = ({ readOnly = false }) => {
             
             return showTemp ? (
               <HStack spacing={2} align="center">
-                <Flame size={18} weight="fill" color="#FB923C" />
+                <Fire size={18} weight="fill" color="#FB923C" />
                 <Text
                   color="#FB923C"
                   fontSize="md"
@@ -579,7 +579,7 @@ const HeaterControl = ({ readOnly = false }) => {
             </Text>
           </HStack>
           <HStack spacing={2} align="center">
-            <Clock size={18} weight="fill" color="#38B2AC" />
+            <GasCanIcon size={18} weight="regular" color="#38B2AC" />
             <Text color="#38B2AC" fontSize="md" fontWeight="semibold">
               {hoursTillEmpty} hrs
             </Text>
@@ -589,7 +589,7 @@ const HeaterControl = ({ readOnly = false }) => {
         {/* Performance Row: Fan Speed and Pump Hz */}
         <HStack spacing={4} align="center" justify="space-between">
           <HStack spacing={2} align="center">
-            <Wind size={18} weight="fill" color="#EC4899" />
+            <FanIcon size={18} weight="fill" color="#EC4899" />
             <Text color="pink.400" fontSize="md" fontWeight="semibold">
               {fanSpeed} RPM
             </Text>
