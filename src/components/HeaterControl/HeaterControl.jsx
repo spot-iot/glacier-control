@@ -5,9 +5,11 @@ import {
   VStack,
   useToast,
   HStack,
+  IconButton,
 } from '@chakra-ui/react'
+import { EditIcon } from '@chakra-ui/icons'
 import PowerToggle from './PowerToggle'
-import LevelSlider from './LevelSlider'
+import LevelSelectModal from './LevelSelectModal'
 import { sendPowerCommand, sendLevelCommand } from '../../services/heaterService'
 import { useHeaterTelemetry } from '../../hooks/useHeaterTelemetry'
 import { usePendingCommands } from '../../contexts/PendingCommandsContext'
@@ -15,8 +17,8 @@ import { usePendingCommands } from '../../contexts/PendingCommandsContext'
 const HeaterControl = ({ readOnly = false }) => {
   const [powerOn, setPowerOn] = useState(false)
   const [level, setLevel] = useState(5) // Confirmed level from telemetry
-  const [sliderValue, setSliderValue] = useState(5) // Slider position during drag
   const [runStep, setRunStep] = useState('Unknown')
+  const [isLevelModalOpen, setIsLevelModalOpen] = useState(false)
   const toast = useToast()
   const { addPendingCommand, removePendingCommand, getPendingCommand, pendingCommands } = usePendingCommands()
   
@@ -41,7 +43,6 @@ const HeaterControl = ({ readOnly = false }) => {
     // Update UI with latest telemetry (confirmed state)
     setPowerOn(telemetry.powerOn)
     setLevel(telemetry.level)
-    setSliderValue(telemetry.level) // Sync slider position with confirmed level
     if (telemetry.runStep) {
       setRunStep(telemetry.runStep)
     }
@@ -97,13 +98,7 @@ const HeaterControl = ({ readOnly = false }) => {
     }
   }
 
-  const handleLevelChange = (newLevel) => {
-    if (readOnly) return
-    // Update slider position during drag (visual feedback only)
-    setSliderValue(newLevel)
-  }
-
-  const handleLevelChangeEnd = async (newLevel) => {
+  const handleLevelSelect = async (newLevel) => {
     if (readOnly) return
 
     const result = await sendLevelCommand(newLevel)
@@ -123,8 +118,6 @@ const HeaterControl = ({ readOnly = false }) => {
         isClosable: true,
       })
     } else {
-      // Revert optimistic update on failure
-      // Note: We don't know the previous level, so telemetry will update it
       toast({
         title: 'Command failed',
         description: result.error || 'Failed to set heater level',
@@ -167,13 +160,47 @@ const HeaterControl = ({ readOnly = false }) => {
           readOnly={readOnly}
         />
 
-        {/* Level Slider */}
-        <LevelSlider
-          level={sliderValue}
-          onChange={handleLevelChange}
-          onChangeEnd={handleLevelChangeEnd}
-          readOnly={readOnly}
-        />
+        {/* Level Display */}
+        {!readOnly && (
+          <HStack spacing={3} align="center" justify="center">
+            <Text color="gray.300" fontSize="md" fontWeight="medium">
+              Level:
+            </Text>
+            <Text
+              color="brand.400"
+              fontSize="lg"
+              fontWeight="bold"
+              minW="40px"
+              textAlign="center"
+            >
+              {level}
+            </Text>
+            <IconButton
+              icon={<EditIcon />}
+              size="sm"
+              variant="ghost"
+              colorScheme="brand"
+              aria-label="Edit level"
+              onClick={() => setIsLevelModalOpen(true)}
+            />
+          </HStack>
+        )}
+        {readOnly && (
+          <HStack spacing={3} align="center" justify="center">
+            <Text color="gray.300" fontSize="md" fontWeight="medium">
+              Level:
+            </Text>
+            <Text
+              color="brand.400"
+              fontSize="lg"
+              fontWeight="bold"
+              minW="40px"
+              textAlign="center"
+            >
+              {level}
+            </Text>
+          </HStack>
+        )}
 
         {/* Command Status Area */}
         {!readOnly && hasPendingCommand && (
@@ -194,6 +221,14 @@ const HeaterControl = ({ readOnly = false }) => {
             Controls are disabled in public view
           </Text>
         )}
+
+        {/* Level Select Modal */}
+        <LevelSelectModal
+          isOpen={isLevelModalOpen}
+          onClose={() => setIsLevelModalOpen(false)}
+          currentLevel={level}
+          onSelectLevel={handleLevelSelect}
+        />
       </VStack>
     </Box>
   )
