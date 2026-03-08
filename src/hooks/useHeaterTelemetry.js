@@ -123,6 +123,7 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
         const powerState = heartbeat.heater?.system?.power
         const level = heartbeat.heater?.performance?.current_gear
         const runStep = heartbeat.heater?.system?.run_step
+        const burnerCoreTemp = heartbeat.heater?.thermals?.burner_core_c
         const deviceUid = heartbeat.device_uid
         const timestamp = heartbeat.timestamp_utc_ms
 
@@ -163,6 +164,7 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
               powerOn,
               level,
               runStep: runStep || 'Unknown',
+              burnerCoreTemp: burnerCoreTemp !== undefined ? burnerCoreTemp : null,
               timestamp,
               deviceUid,
             })

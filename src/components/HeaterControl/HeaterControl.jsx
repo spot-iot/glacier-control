@@ -18,6 +18,7 @@ const HeaterControl = ({ readOnly = false }) => {
   const [powerOn, setPowerOn] = useState(false)
   const [level, setLevel] = useState(5) // Confirmed level from telemetry
   const [runStep, setRunStep] = useState('Unknown')
+  const [burnerCoreTemp, setBurnerCoreTemp] = useState(null)
   const [isLevelModalOpen, setIsLevelModalOpen] = useState(false)
   const toast = useToast()
   const { addPendingCommand, removePendingCommand, getPendingCommand, pendingCommands } = usePendingCommands()
@@ -45,6 +46,9 @@ const HeaterControl = ({ readOnly = false }) => {
     setLevel(telemetry.level)
     if (telemetry.runStep) {
       setRunStep(telemetry.runStep)
+    }
+    if (telemetry.burnerCoreTemp !== undefined && telemetry.burnerCoreTemp !== null) {
+      setBurnerCoreTemp(telemetry.burnerCoreTemp)
     }
   }, [])
 
@@ -161,46 +165,45 @@ const HeaterControl = ({ readOnly = false }) => {
         />
 
         {/* Level Display */}
-        {!readOnly && (
-          <HStack spacing={3} align="center" justify="center">
-            <Text color="gray.300" fontSize="md" fontWeight="medium">
-              Level:
+        <HStack spacing={4} align="center" justify="space-between">
+          <HStack spacing={3} align="center">
+            <Text color="gray.300" fontSize="md" fontWeight="medium" minW="100px">
+              Current Level:
             </Text>
             <Text
               color="brand.400"
               fontSize="lg"
               fontWeight="bold"
               minW="40px"
-              textAlign="center"
             >
               {level}
             </Text>
-            <IconButton
-              icon={<EditIcon />}
-              size="sm"
-              variant="ghost"
-              colorScheme="brand"
-              aria-label="Edit level"
-              onClick={() => setIsLevelModalOpen(true)}
-            />
+            {!readOnly && (
+              <IconButton
+                icon={<EditIcon />}
+                size="sm"
+                variant="ghost"
+                colorScheme="brand"
+                aria-label="Edit level"
+                onClick={() => setIsLevelModalOpen(true)}
+              />
+            )}
           </HStack>
-        )}
-        {readOnly && (
-          <HStack spacing={3} align="center" justify="center">
-            <Text color="gray.300" fontSize="md" fontWeight="medium">
-              Level:
-            </Text>
-            <Text
-              color="brand.400"
-              fontSize="lg"
-              fontWeight="bold"
-              minW="40px"
-              textAlign="center"
-            >
-              {level}
-            </Text>
-          </HStack>
-        )}
+          {burnerCoreTemp !== null && (
+            <HStack spacing={2} align="center">
+              <Text color="gray.400" fontSize="sm">
+                Core Temp:
+              </Text>
+              <Text
+                color="orange.400"
+                fontSize="md"
+                fontWeight="semibold"
+              >
+                {burnerCoreTemp}°C
+              </Text>
+            </HStack>
+          )}
+        </HStack>
 
         {/* Command Status Area */}
         {!readOnly && hasPendingCommand && (
