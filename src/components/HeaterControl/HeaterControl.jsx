@@ -15,6 +15,7 @@ import {
   ModalCloseButton,
   Button,
   useDisclosure,
+  ButtonGroup,
 } from '@chakra-ui/react'
 import { EditIcon } from '@chakra-ui/icons'
 import { 
@@ -34,13 +35,14 @@ import {
 } from 'phosphor-react'
 import PowerToggle from './PowerToggle'
 import LevelSelectModal from './LevelSelectModal'
-import { sendPowerCommand, sendLevelCommand, sendTimeSyncCommand } from '../../services/heaterService'
+import { sendPowerCommand, sendLevelCommand, sendTimeSyncCommand, sendModeCommand } from '../../services/heaterService'
 import { useHeaterTelemetry } from '../../hooks/useHeaterTelemetry'
 import { usePendingCommands } from '../../contexts/PendingCommandsContext'
 
 const HeaterControl = ({ readOnly = false }) => {
   const [powerOn, setPowerOn] = useState(false)
   const [level, setLevel] = useState(5) // Confirmed level from telemetry
+  const [operatingMode, setOperatingMode] = useState('LEVEL') // LEVEL, AUTO, FROST
   const [runStep, setRunStep] = useState('Unknown')
   const [burnerCoreTemp, setBurnerCoreTemp] = useState(null)
   const [heaterAmbientTemp, setHeaterAmbientTemp] = useState(null)
@@ -69,7 +71,14 @@ const HeaterControl = ({ readOnly = false }) => {
   // Get pending commands for status display
   const pendingPowerCommand = getPendingCommand('POWER')
   const pendingLevelCommand = getPendingCommand('LEVEL')
-  const hasPendingCommand = pendingPowerCommand || pendingLevelCommand
+  const pendingModeCommand = getPendingCommand('MODE')
+  const hasPendingCommand = pendingPowerCommand || pendingLevelCommand || pendingModeCommand
+
+  // Get pending mode value (if any)
+  const pendingModeValue = pendingModeCommand?.value
+  const pendingModeName = pendingModeValue !== undefined 
+    ? { 0: 'LEVEL', 1: 'AUTO', 2: 'FROST' }[pendingModeValue]
+    : null
   
   // Get command type for status message
   const getPendingCommandType = () => {
@@ -78,6 +87,10 @@ const HeaterControl = ({ readOnly = false }) => {
     }
     if (pendingLevelCommand) {
       return `LEVEL ${pendingLevelCommand.value}`
+    }
+    if (pendingModeCommand) {
+      const modeNames = { 0: 'LEVEL', 1: 'AUTO', 2: 'FROST' }
+      return `MODE ${modeNames[pendingModeCommand.value] || pendingModeCommand.value}`
     }
     return null
   }
@@ -317,6 +330,41 @@ const HeaterControl = ({ readOnly = false }) => {
     }
   }
 
+  const handleModeChange = async (newMode) => {
+    if (readOnly) return
+    if (newMode === operatingMode) return // No change needed
+
+    // Map mode to command value: LEVEL=0, AUTO=1, FROST=2
+    const modeValues = { 'LEVEL': 0, 'AUTO': 1, 'FROST': 2 }
+    const commandValue = modeValues[newMode]
+
+    const result = await sendModeCommand(commandValue)
+    
+    if (result.success && result.commandId) {
+      // Add to pending commands
+      addPendingCommand(result.commandId, {
+        type: 'MODE',
+        value: commandValue,
+      })
+      
+      toast({
+        title: 'Mode command sent',
+        description: `Setting mode to ${newMode} - waiting for heater confirmation...`,
+        status: 'info',
+        duration: 3000,
+        isClosable: true,
+      })
+    } else {
+      toast({
+        title: 'Command failed',
+        description: result.error || 'Failed to send mode command',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    }
+  }
+
   return (
     <Box
       bg="gray.800"
@@ -358,6 +406,85 @@ const HeaterControl = ({ readOnly = false }) => {
           </HStack>
         )}
 
+        {/* Operating Mode Selector */}
+        <ButtonGroup isAttached variant="outline" size="sm" w="100%">
+          <Button
+            flex={1}
+            onClick={() => handleModeChange('LEVEL')}
+            isDisabled={readOnly}
+            colorScheme={operatingMode === 'LEVEL' && !pendingModeCommand ? 'brand' : 'gray'}
+            bg={
+              operatingMode === 'LEVEL' && !pendingModeCommand 
+                ? 'brand.400' 
+                : pendingModeName === 'LEVEL' 
+                  ? 'gray.600' 
+                  : 'transparent'
+            }
+            color={
+              operatingMode === 'LEVEL' && !pendingModeCommand 
+                ? 'white' 
+                : pendingModeName === 'LEVEL' 
+                  ? 'gray.200' 
+                  : 'gray.300'
+            }
+            _hover={{
+              bg: operatingMode === 'LEVEL' && !pendingModeCommand ? 'brand.500' : 'gray.700',
+            }}
+          >
+            Level
+          </Button>
+          <Button
+            flex={1}
+            onClick={() => handleModeChange('AUTO')}
+            isDisabled={readOnly}
+            colorScheme={operatingMode === 'AUTO' && !pendingModeCommand ? 'brand' : 'gray'}
+            bg={
+              operatingMode === 'AUTO' && !pendingModeCommand 
+                ? 'brand.400' 
+                : pendingModeName === 'AUTO' 
+                  ? 'gray.600' 
+                  : 'transparent'
+            }
+            color={
+              operatingMode === 'AUTO' && !pendingModeCommand 
+                ? 'white' 
+                : pendingModeName === 'AUTO' 
+                  ? 'gray.200' 
+                  : 'gray.300'
+            }
+            _hover={{
+              bg: operatingMode === 'AUTO' && !pendingModeCommand ? 'brand.500' : 'gray.700',
+            }}
+          >
+            Auto
+          </Button>
+          <Button
+            flex={1}
+            onClick={() => handleModeChange('FROST')}
+            isDisabled={readOnly}
+            colorScheme={operatingMode === 'FROST' && !pendingModeCommand ? 'brand' : 'gray'}
+            bg={
+              operatingMode === 'FROST' && !pendingModeCommand 
+                ? 'brand.400' 
+                : pendingModeName === 'FROST' 
+                  ? 'gray.600' 
+                  : 'transparent'
+            }
+            color={
+              operatingMode === 'FROST' && !pendingModeCommand 
+                ? 'white' 
+                : pendingModeName === 'FROST' 
+                  ? 'gray.200' 
+                  : 'gray.300'
+            }
+            _hover={{
+              bg: operatingMode === 'FROST' && !pendingModeCommand ? 'brand.500' : 'gray.700',
+            }}
+          >
+            Frost
+          </Button>
+        </ButtonGroup>
+
         {/* Power Toggle */}
         <PowerToggle
           isOn={powerOn}
@@ -378,7 +505,7 @@ const HeaterControl = ({ readOnly = false }) => {
             >
               {level}
             </Text>
-            {!readOnly && (
+            {!readOnly && operatingMode === 'LEVEL' && (
               <IconButton
                 icon={<EditIcon />}
                 size="sm"

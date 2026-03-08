@@ -74,3 +74,19 @@ export const sendLevelCommand = async (level) => {
 export const sendTimeSyncCommand = async () => {
   return sendCommand('TIMESYNC', 1)
 }
+
+/**
+ * Send mode command (LEVEL=0, AUTO=1, FROST=2)
+ * @param {number} modeValue - Mode value (0 for LEVEL, 1 for AUTO, 2 for FROST)
+ * @returns {Promise<{success: boolean, message?: string, error?: string}>}
+ */
+export const sendModeCommand = async (modeValue) => {
+  // Validate mode range
+  if (modeValue < 0 || modeValue > 2) {
+    return {
+      success: false,
+      error: 'Mode must be 0 (LEVEL), 1 (AUTO), or 2 (FROST)',
+    }
+  }
+  return sendCommand('MODE', modeValue)
+}

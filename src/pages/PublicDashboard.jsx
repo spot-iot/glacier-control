@@ -1,7 +1,6 @@
 import { Box, Container, VStack, Alert, AlertIcon, AlertDescription } from '@chakra-ui/react'
 import WeatherWidget from '../components/WeatherWidget/WeatherWidget'
 import HeaterControl from '../components/HeaterControl/HeaterControl'
-import TemperatureHistory from '../components/TemperatureHistory/TemperatureHistory'
 import ActionButtons from '../components/ActionButtons/ActionButtons'
 
 const PublicDashboard = () => {
@@ -24,9 +23,6 @@ const PublicDashboard = () => {
 
         {/* Action Buttons - Hidden in public view */}
         {/* <ActionButtons readOnly={true} /> */}
-
-        {/* Temperature History - Bottom Section */}
-        <TemperatureHistory readOnly={true} />
       </VStack>
     </Container>
   )

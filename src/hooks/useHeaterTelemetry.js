@@ -134,10 +134,23 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
         const powerState = heartbeat.heater?.system?.power
         const level = heartbeat.heater?.performance?.current_gear
         const runStep = heartbeat.heater?.system?.run_step
+        const operatingModeRaw = heartbeat.heater?.system?.operating_mode
         const burnerCoreTemp = heartbeat.heater?.thermals?.burner_core_c
         const heaterAmbientTemp = heartbeat.heater?.thermals?.heater_ambient_c
         const deviceUid = heartbeat.device_uid
         const timestamp = heartbeat.timestamp_utc_ms
+
+        // Convert operating mode to string (handle both string and number)
+        let operatingMode = 'LEVEL' // default
+        if (operatingModeRaw !== undefined && operatingModeRaw !== null) {
+          if (typeof operatingModeRaw === 'string') {
+            operatingMode = operatingModeRaw.toUpperCase()
+          } else if (typeof operatingModeRaw === 'number') {
+            // Map: 0=LEVEL, 1=AUTO, 2=FROST
+            const modeMap = { 0: 'LEVEL', 1: 'AUTO', 2: 'FROST' }
+            operatingMode = modeMap[operatingModeRaw] || 'LEVEL'
+          }
+        }
 
         // Validate required fields
         if (powerState === undefined || level === undefined || !deviceUid || !timestamp) {
@@ -176,6 +189,7 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
               powerOn,
               level,
               runStep: runStep || 'Unknown',
+              operatingMode,
               burnerCoreTemp: burnerCoreTemp !== undefined ? burnerCoreTemp : null,
               heaterAmbientTemp: heaterAmbientTemp !== undefined ? heaterAmbientTemp : null,
               timestamp,
