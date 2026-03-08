@@ -16,7 +16,7 @@ const DEVICE_UID = import.meta.env.VITE_HEATER_DEVICE_UID || '345F4537C1B0'
  */
 export const sendCommand = async (commandType, commandValue) => {
   try {
-    const response = await api.post('/commands/send_new', {
+    const response = await api.post('/users/command/send_new', {
       command: {
         device_uid: DEVICE_UID,
         command_type: commandType,

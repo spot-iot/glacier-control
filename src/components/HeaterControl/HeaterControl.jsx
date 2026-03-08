@@ -3,9 +3,7 @@ import {
   Box,
   Text,
   VStack,
-  Button,
   useToast,
-  Spinner,
   HStack,
 } from '@chakra-ui/react'
 import PowerToggle from './PowerToggle'
@@ -18,38 +16,33 @@ const HeaterControl = ({ readOnly = false }) => {
   const [powerOn, setPowerOn] = useState(false)
   const [level, setLevel] = useState(5)
   const toast = useToast()
-  const { addPendingCommand, removePendingCommand, hasPendingCommand, getPendingCommand, pendingCommands } = usePendingCommands()
+  const { addPendingCommand, removePendingCommand, getPendingCommand, pendingCommands } = usePendingCommands()
   
-  // Check for pending commands
-  const hasPendingPower = hasPendingCommand('POWER')
-  const hasPendingLevel = hasPendingCommand('LEVEL')
+  // Get pending commands for status display
   const pendingPowerCommand = getPendingCommand('POWER')
   const pendingLevelCommand = getPendingCommand('LEVEL')
+  const hasPendingCommand = pendingPowerCommand || pendingLevelCommand
   
-  // Track when user makes changes to avoid conflicts with telemetry updates
-  const userActionTimestampRef = useRef(0)
-  const isUserActionRef = useRef(false)
+  // Get command type for status message
+  const getPendingCommandType = () => {
+    if (pendingPowerCommand) {
+      return `POWER ${pendingPowerCommand.value === 1 ? 'ON' : 'OFF'}`
+    }
+    if (pendingLevelCommand) {
+      return `LEVEL ${pendingLevelCommand.value}`
+    }
+    return null
+  }
 
   // Handle telemetry updates from WebSocket
-  // Use useCallback to prevent infinite re-renders
   const handleTelemetryUpdate = useCallback((telemetry) => {
-    // Only update if telemetry is newer than last user action
-    // This prevents telemetry from overriding user's recent changes
-    if (telemetry.timestamp > userActionTimestampRef.current) {
-      // Small delay to allow user action to complete
-      setTimeout(() => {
-        if (!isUserActionRef.current) {
-          setPowerOn(telemetry.powerOn)
-          setLevel(telemetry.level)
-        }
-        isUserActionRef.current = false
-      }, 1000) // 1 second grace period for user actions
-    }
+    // Update UI with latest telemetry
+    setPowerOn(telemetry.powerOn)
+    setLevel(telemetry.level)
   }, [])
 
   // Handle timeout commands
   useEffect(() => {
-    // Check for timeout commands and handle them
     pendingCommands.forEach((command, commandId) => {
       if (command.status === 'timeout') {
         // Command timed out - show error
@@ -61,23 +54,18 @@ const HeaterControl = ({ readOnly = false }) => {
           isClosable: true,
         })
         removePendingCommand(commandId)
-        isUserActionRef.current = false
-        
-        // Revert UI to last known state from telemetry
-        // (telemetry will update this automatically)
       }
     })
   }, [pendingCommands, toast, removePendingCommand])
 
-  // Connect to WebSocket telemetry (optional - app works without it)
-  const { isConnected, lastUpdate } = useHeaterTelemetry(handleTelemetryUpdate)
+  // Connect to WebSocket telemetry
+  const { isConnected } = useHeaterTelemetry(handleTelemetryUpdate)
 
   const handlePowerChange = async (newPowerState) => {
-    if (readOnly || hasPendingPower) return // Don't allow new commands if one is pending
+    if (readOnly) return
 
-    // Mark as user action to prevent telemetry from overriding
-    isUserActionRef.current = true
-    userActionTimestampRef.current = Date.now()
+    // Optimistic update
+    setPowerOn(newPowerState)
 
     const result = await sendPowerCommand(newPowerState)
 
@@ -88,17 +76,16 @@ const HeaterControl = ({ readOnly = false }) => {
         value: newPowerState ? 1 : 0,
       })
       
-      // Show pending value (optimistic update)
-      setPowerOn(newPowerState)
-      
       toast({
-        title: 'Command queued',
-        description: `Power ${newPowerState ? 'ON' : 'OFF'} - waiting for confirmation...`,
+        title: 'Command sent',
+        description: `Power ${newPowerState ? 'ON' : 'OFF'} - waiting for heater confirmation...`,
         status: 'info',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       })
     } else {
+      // Revert optimistic update on failure
+      setPowerOn(!newPowerState)
       toast({
         title: 'Command failed',
         description: result.error || 'Failed to send power command',
@@ -106,21 +93,16 @@ const HeaterControl = ({ readOnly = false }) => {
         duration: 5000,
         isClosable: true,
       })
-      isUserActionRef.current = false
     }
   }
 
   const handleLevelChange = (newLevel) => {
-    if (readOnly || hasPendingLevel) return // Don't allow changes if command is pending
+    if (readOnly) return
     setLevel(newLevel)
   }
 
   const handleLevelChangeEnd = async (newLevel) => {
-    if (readOnly || hasPendingLevel) return // Don't allow new commands if one is pending
-
-    // Mark as user action to prevent telemetry from overriding
-    isUserActionRef.current = true
-    userActionTimestampRef.current = Date.now()
+    if (readOnly) return
 
     const result = await sendLevelCommand(newLevel)
 
@@ -131,17 +113,16 @@ const HeaterControl = ({ readOnly = false }) => {
         value: newLevel,
       })
       
-      // Show pending value (optimistic update)
-      setLevel(newLevel)
-      
       toast({
-        title: 'Command queued',
-        description: `Level ${newLevel} - waiting for confirmation...`,
+        title: 'Command sent',
+        description: `Level ${newLevel} - waiting for heater confirmation...`,
         status: 'info',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       })
     } else {
+      // Revert optimistic update on failure
+      // Note: We don't know the previous level, so telemetry will update it
       toast({
         title: 'Command failed',
         description: result.error || 'Failed to set heater level',
@@ -149,7 +130,6 @@ const HeaterControl = ({ readOnly = false }) => {
         duration: 5000,
         isClosable: true,
       })
-      isUserActionRef.current = false
     }
   }
 
@@ -166,28 +146,21 @@ const HeaterControl = ({ readOnly = false }) => {
           <Text fontSize="xl" fontWeight="bold" color="white">
             Heater Control
           </Text>
-          <HStack spacing={2}>
-            {isConnected && (
-              <Box
-                w={2}
-                h={2}
-                borderRadius="full"
-                bg="green.400"
-                title="WebSocket connected"
-              />
-            )}
-            {(hasPendingPower || hasPendingLevel) && (
-              <Spinner size="sm" color="yellow.400" title="Command pending" />
-            )}
-          </HStack>
+          {isConnected && (
+            <Box
+              w={2}
+              h={2}
+              borderRadius="full"
+              bg="green.400"
+              title="WebSocket connected"
+            />
+          )}
         </HStack>
 
         {/* Power Toggle */}
         <PowerToggle
           isOn={powerOn}
           onChange={handlePowerChange}
-          isPending={hasPendingPower}
-          pendingValue={pendingPowerCommand?.value === 1}
           readOnly={readOnly}
         />
 
@@ -196,10 +169,22 @@ const HeaterControl = ({ readOnly = false }) => {
           level={level}
           onChange={handleLevelChange}
           onChangeEnd={handleLevelChangeEnd}
-          isPending={hasPendingLevel}
-          pendingValue={pendingLevelCommand?.value}
           readOnly={readOnly}
         />
+
+        {/* Command Status Area */}
+        {!readOnly && hasPendingCommand && (
+          <Box
+            bg="gray.700"
+            borderRadius="md"
+            p={3}
+            textAlign="center"
+          >
+            <Text fontSize="sm" color="yellow.300">
+              Waiting for {getPendingCommandType()} command...
+            </Text>
+          </Box>
+        )}
 
         {readOnly && (
           <Text fontSize="xs" color="gray.500" textAlign="center" mt={2}>

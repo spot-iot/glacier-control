@@ -5,14 +5,18 @@ import { useToast } from '@chakra-ui/react'
 
 /**
  * Hook to receive heater telemetry via XANO Realtime
- * Updates heater state from device telemetry
+ * Handles heartbeat data with embedded command confirmations
+ * 
+ * Heartbeat format:
+ * - Regular: { heater: {...}, climate: {...}, command: null, device_uid, timestamp_utc_ms }
+ * - Confirmed: { heater: {...}, climate: {...}, command: { id, status, processed_at_ms }, device_uid, timestamp_utc_ms }
  */
 export const useHeaterTelemetry = (onTelemetryUpdate) => {
   const [isConnected, setIsConnected] = useState(false)
   const [lastUpdate, setLastUpdate] = useState(null)
   const lastTimestampRef = useRef(0)
   const callbackRef = useRef(onTelemetryUpdate)
-  const { removePendingCommand, getPendingCommand, hasPendingCommandId } = usePendingCommands()
+  const { removePendingCommand, getPendingCommandById, hasPendingCommandId } = usePendingCommands()
   const toast = useToast()
 
   // Keep callback ref updated
@@ -29,12 +33,9 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
   }, [])
 
   useEffect(() => {
-    // Try parent channel first (matching your working code pattern)
-    // XANO might not support nested channels the same way
-    const channelName = 'glacier_live_feed' // Parent channel instead of nested
+    const channelName = 'glacier_live_feed'
 
     // Handle incoming messages from glacier_live_feed channel
-    // Message structure: { action: 'event', payload: { data: { device_uid, power_state, level, ... } } }
     const handleMessage = (action) => {
       try {
         // Skip connection_status messages (SDK internal)
@@ -47,34 +48,37 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
           return
         }
 
-        console.log('📨 Received message from glacier_live_feed:', action)
+        console.log('📨 Received heartbeat from glacier_live_feed:', action)
         
-        // Extract data from payload.data
-        const data = action?.payload?.data
-        if (!data) {
-          console.log('No data found in message:', action)
+        // Extract heartbeat data from payload.data
+        const heartbeat = action?.payload?.data
+        if (!heartbeat) {
+          console.log('No heartbeat data found in message:', action)
           return
         }
 
-        // Check if this is a command confirmation
-        if (data.type === 'command_confirmation') {
-          console.log('✅ Command confirmation received:', data)
-          
-          // Handle command confirmation
-          if (data.command_id && data.status) {
-            // Only process if command is still pending (hasn't timed out)
-            if (!hasPendingCommandId(data.command_id)) {
-              console.log(`Command ${data.command_id} confirmation received but command is no longer pending (likely timed out)`)
-              return // Don't process confirmation for commands that have already timed out
-            }
-            
-            if (data.status === 'success') {
-              // Command succeeded - remove from pending
-              removePendingCommand(data.command_id)
-              console.log(`Command ${data.command_id} confirmed successfully`)
+        // Validate heartbeat structure
+        if (!heartbeat.device_uid || !heartbeat.heater || !heartbeat.timestamp_utc_ms) {
+          console.warn('Invalid heartbeat structure:', heartbeat)
+          return
+        }
+
+        // Check for command confirmation
+        if (heartbeat.command && heartbeat.command.id) {
+          const commandId = heartbeat.command.id
+          const commandStatus = heartbeat.command.status
+
+          console.log(`✅ Command confirmation in heartbeat: ID ${commandId}, Status: ${commandStatus}`)
+
+          // Only process if command is still pending
+          if (hasPendingCommandId(commandId)) {
+            if (commandStatus === 'EXECUTED') {
+              // Command succeeded
+              const pendingCommand = getPendingCommandById(commandId)
+              const commandType = pendingCommand?.type || 'Command'
               
-              // Show success toast
-              const commandType = data.command_type || 'Command'
+              removePendingCommand(commandId)
+              
               toast({
                 title: 'Command confirmed',
                 description: `${commandType} command executed successfully`,
@@ -82,116 +86,88 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
                 duration: 2000,
                 isClosable: true,
               })
+            } else if (commandStatus === 'FAILED') {
+              // Command failed - check for error codes in heater.system
+              const errorCode = heartbeat.heater?.system?.error_code
+              const errorMessage = errorCode 
+                ? `Command failed (Error code: ${errorCode})`
+                : 'Command failed - device could not execute command'
               
-            } else if (data.status === 'failed') {
-              // Command failed - show error (retry will be handled by user if needed)
-              removePendingCommand(data.command_id)
+              removePendingCommand(commandId)
               
               toast({
                 title: 'Command failed',
-                description: 'Command could not be executed. Please try again.',
+                description: errorMessage,
                 status: 'error',
                 duration: 5000,
                 isClosable: true,
               })
             }
+          } else {
+            console.log(`Command ${commandId} confirmation received but not in pending list (already processed or timed out)`)
           }
-
-          // If confirmation includes current_state, use it as telemetry update
-          if (data.current_state) {
-            const telemetry = {
-              device_uid: data.device_uid,
-              power_state: data.current_state.power_state,
-              level: data.current_state.level,
-              timestamp: data.timestamp || Date.now(),
-            }
-            processTelemetry(telemetry)
-          }
-          return
         }
 
-        // Regular telemetry data
-        if (data.device_uid && typeof data.power_state === 'number' && typeof data.level === 'number') {
-          processTelemetry(data)
-        } else {
-          console.log('Invalid telemetry data structure:', data)
-        }
+        // Process telemetry data (always update UI with current state)
+        processTelemetry(heartbeat)
+
       } catch (error) {
-        console.error('Error processing telemetry message:', error)
+        console.error('Error processing heartbeat message:', error)
       }
     }
 
-    // Process telemetry data
-    const processTelemetry = (telemetry) => {
-      // Validate telemetry data
-      if (!telemetry.device_uid || typeof telemetry.power_state !== 'number' || typeof telemetry.level !== 'number') {
-        console.warn('Invalid telemetry data:', telemetry)
-        return
-      }
+    // Process telemetry data from heartbeat
+    const processTelemetry = (heartbeat) => {
+      try {
+        // Extract heater state
+        const powerState = heartbeat.heater?.system?.power
+        const level = heartbeat.heater?.performance?.current_gear
+        const deviceUid = heartbeat.device_uid
+        const timestamp = heartbeat.timestamp_utc_ms
 
-      console.log('✅ Valid heater telemetry received:', telemetry)
-
-      // Check if telemetry matches any pending command (implicit confirmation)
-      const pendingPower = getPendingCommand('POWER')
-      const pendingLevel = getPendingCommand('LEVEL')
-      
-      if (pendingPower) {
-        const expectedPower = pendingPower.value === 1
-        if (telemetry.power_state === (expectedPower ? 1 : 0)) {
-          // Telemetry matches pending command - treat as confirmation
-          console.log('Telemetry matches pending POWER command - treating as confirmation')
-          removePendingCommand(pendingPower.id)
-          toast({
-            title: 'Command confirmed',
-            description: 'Power command executed successfully',
-            status: 'success',
-            duration: 2000,
-            isClosable: true,
-          })
+        // Validate required fields
+        if (powerState === undefined || level === undefined || !deviceUid || !timestamp) {
+          console.warn('Invalid telemetry data in heartbeat:', heartbeat)
+          return
         }
-      }
-      
-      if (pendingLevel) {
-        if (telemetry.level === pendingLevel.value) {
-          // Telemetry matches pending command - treat as confirmation
-          console.log('Telemetry matches pending LEVEL command - treating as confirmation')
-          removePendingCommand(pendingLevel.id)
-          toast({
-            title: 'Command confirmed',
-            description: `Level ${telemetry.level} confirmed`,
-            status: 'success',
-            duration: 2000,
-            isClosable: true,
-          })
+
+        // Convert power state to boolean
+        // Handles: "ON"/"OFF" (strings), 1/0 (numbers), "1"/"0" (string numbers)
+        let powerOn = false
+        if (powerState === 'ON' || powerState === 1 || powerState === '1') {
+          powerOn = true
+        } else if (powerState === 'OFF' || powerState === 0 || powerState === '0') {
+          powerOn = false
         } else {
-          // Telemetry differs from pending - command may have failed
-          console.log('Telemetry differs from pending LEVEL command - command may have failed')
-          toast({
-            title: 'State mismatch',
-            description: 'Command may have failed - showing current device state',
-            status: 'warning',
-            duration: 5000,
-            isClosable: true,
-          })
-          removePendingCommand(pendingLevel.id)
+          console.warn(`Unknown power state value: ${powerState}, defaulting to OFF`)
+          powerOn = false
         }
-      }
 
-      // Only update if timestamp is newer (avoid stale data)
-      const timestamp = telemetry.timestamp || Date.now()
-      if (timestamp > lastTimestampRef.current) {
-        lastTimestampRef.current = timestamp
-        setLastUpdate(new Date(timestamp))
+        console.log('✅ Processing heartbeat telemetry:', {
+          powerOn,
+          level,
+          deviceUid,
+          timestamp,
+          hasCommand: !!heartbeat.command
+        })
 
-        // Call callback with telemetry data
-        if (callbackRef.current) {
-          callbackRef.current({
-            powerOn: telemetry.power_state === 1,
-            level: telemetry.level,
-            timestamp: timestamp,
-            deviceUid: telemetry.device_uid,
-          })
+        // Only update if timestamp is newer (avoid stale data)
+        if (timestamp > lastTimestampRef.current) {
+          lastTimestampRef.current = timestamp
+          setLastUpdate(new Date(timestamp))
+
+          // Call callback with telemetry data
+          if (callbackRef.current) {
+            callbackRef.current({
+              powerOn,
+              level,
+              timestamp,
+              deviceUid,
+            })
+          }
         }
+      } catch (error) {
+        console.error('Error processing telemetry from heartbeat:', error)
       }
     }
 
@@ -221,7 +197,7 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
       }
     }
 
-  }, []) // Empty dependency array - only run once on mount
+  }, [removePendingCommand, getPendingCommandById, hasPendingCommandId, toast]) // Include dependencies
 
   return {
     isConnected,

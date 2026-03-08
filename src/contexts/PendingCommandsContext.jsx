@@ -30,7 +30,7 @@ export const PendingCommandsProvider = ({ children }) => {
       return newMap
     })
 
-    // Set timeout (60 seconds / 1 minute)
+    // Set timeout (45 seconds)
     const timer = setTimeout(() => {
       setPendingCommands((prev) => {
         const newMap = new Map(prev)
@@ -45,7 +45,7 @@ export const PendingCommandsProvider = ({ children }) => {
         return newMap
       })
       clearTimeoutTimer(commandId)
-    }, 60000) // 60 seconds (1 minute)
+    }, 45000) // 45 seconds
 
     timeoutTimersRef.current.set(commandId, timer)
   }, [clearTimeoutTimer])
@@ -86,6 +86,15 @@ export const PendingCommandsProvider = ({ children }) => {
     return null
   }, [pendingCommands])
 
+  // Get pending command by ID
+  const getPendingCommandById = useCallback((commandId) => {
+    const command = pendingCommands.get(commandId)
+    if (command && command.status !== 'timeout') {
+      return { id: commandId, ...command }
+    }
+    return null
+  }, [pendingCommands])
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -102,6 +111,7 @@ export const PendingCommandsProvider = ({ children }) => {
     hasPendingCommand,
     hasPendingCommandId,
     getPendingCommand,
+    getPendingCommandById,
   }
 
   return (
