@@ -9,14 +9,14 @@ const PowerToggle = ({ isOn, onChange, runStep, readOnly }) => {
       <HStack spacing={2}>
         <Switch
           size="lg"
-          colorScheme="green"
+          colorScheme="yellow"
           isChecked={isOn}
           onChange={(e) => onChange(e.target.checked)}
           isDisabled={readOnly}
         />
       </HStack>
       <Text
-        color={isOn ? 'green.400' : 'gray.500'}
+        color={isOn ? '#FBBF24' : 'gray.500'}
         fontSize="md"
         fontWeight="semibold"
         minW="60px"

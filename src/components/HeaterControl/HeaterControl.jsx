@@ -8,52 +8,30 @@ import {
   IconButton,
 } from '@chakra-ui/react'
 import { EditIcon } from '@chakra-ui/icons'
+import { 
+  Flame, 
+  GasPump, 
+  Gauge, 
+  Hourglass, 
+  Timer,
+  Gear,
+  Lightning,
+  BatteryCharging,
+  Wind,
+  WaveSine
+} from 'phosphor-react'
 import PowerToggle from './PowerToggle'
 import LevelSelectModal from './LevelSelectModal'
 import { sendPowerCommand, sendLevelCommand } from '../../services/heaterService'
 import { useHeaterTelemetry } from '../../hooks/useHeaterTelemetry'
 import { usePendingCommands } from '../../contexts/PendingCommandsContext'
 
-// Simple SVG icons for fuel pump, gauge, hourglass, and stopwatch
-const FuelPumpIcon = ({ size = 16, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-    <path d="M6 2h4v4H6zM4 6h8v2H4zM4 8v8h8V8M12 8h2v8h-2M14 10h4v4h-4" />
-  </svg>
-)
-
-const GaugeIcon = ({ size = 16, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
-    <path d="M12 2a10 10 0 0 1 7 7M12 22a10 10 0 0 1-7-7" />
-  </svg>
-)
-
-const HourglassIcon = ({ size = 16, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-    <path d="M6 2h12v6l-4 4 4 4v6H6v-6l4-4-4-4V2z" />
-  </svg>
-)
-
-const StopwatchIcon = ({ size = 16, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-    <circle cx="12" cy="13" r="8" />
-    <path d="M12 9v4l3 3" />
-    <path d="M12 5V3M16 2l-1 1M8 2l1 1" />
-  </svg>
-)
-
-const FlameIcon = ({ size = 16, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-    <path d="M12 2C8 6 6 9 6 13c0 3.3 2.7 6 6 6s6-2.7 6-6c0-4-2-7-6-11zm0 18c-2.2 0-4-1.8-4-4 0-3.2 1.3-5.5 4-8.5 2.7 3 4 5.3 4 8.5 0 2.2-1.8 4-4 4z" />
-  </svg>
-)
-
 const HeaterControl = ({ readOnly = false }) => {
   const [powerOn, setPowerOn] = useState(false)
   const [level, setLevel] = useState(5) // Confirmed level from telemetry
   const [runStep, setRunStep] = useState('Unknown')
   const [burnerCoreTemp, setBurnerCoreTemp] = useState(null)
+  const [heaterAmbientTemp, setHeaterAmbientTemp] = useState(null)
   const [lastHeartbeatTime, setLastHeartbeatTime] = useState(null)
   const [secondsSinceRefresh, setSecondsSinceRefresh] = useState(0)
   
@@ -63,6 +41,10 @@ const HeaterControl = ({ readOnly = false }) => {
   const [totalRuntime, setTotalRuntime] = useState(0)
   const [sessionStartTime, setSessionStartTime] = useState(null)
   const [sessionRuntime, setSessionRuntime] = useState(0)
+  const [voltage, setVoltage] = useState(0)
+  const [current, setCurrent] = useState(0)
+  const [fanSpeed, setFanSpeed] = useState(0)
+  const [pumpHz, setPumpHz] = useState(0)
   
   const [isLevelModalOpen, setIsLevelModalOpen] = useState(false)
   const toast = useToast()
@@ -110,6 +92,9 @@ const HeaterControl = ({ readOnly = false }) => {
     }
     if (telemetry.burnerCoreTemp !== undefined && telemetry.burnerCoreTemp !== null) {
       setBurnerCoreTemp(telemetry.burnerCoreTemp)
+    }
+    if (telemetry.heaterAmbientTemp !== undefined && telemetry.heaterAmbientTemp !== null) {
+      setHeaterAmbientTemp(telemetry.heaterAmbientTemp)
     }
     
     // Update last heartbeat time for "seconds since refresh" calculation
@@ -161,12 +146,20 @@ const HeaterControl = ({ readOnly = false }) => {
     setLifetimeFuel((Math.random() * 500 + 100).toFixed(1))
     setFuelConsumptionRate((Math.random() * 0.5 + 0.1).toFixed(2))
     setTotalRuntime((Math.random() * 1000 + 100).toFixed(1))
+    setVoltage((Math.random() * 5 + 10).toFixed(1)) // 10-15V
+    setCurrent((Math.random() * 2 + 0.5).toFixed(2)) // 0.5-2.5A
+    setFanSpeed(Math.floor(Math.random() * 2000 + 1000)) // 1000-3000 RPM
+    setPumpHz((Math.random() * 20 + 10).toFixed(1)) // 10-30 Hz
     
     // Update dummy data every 10 seconds
     const interval = setInterval(() => {
       setLifetimeFuel((Math.random() * 500 + 100).toFixed(1))
       setFuelConsumptionRate((Math.random() * 0.5 + 0.1).toFixed(2))
       setTotalRuntime((Math.random() * 1000 + 100).toFixed(1))
+      setVoltage((Math.random() * 5 + 10).toFixed(1))
+      setCurrent((Math.random() * 2 + 0.5).toFixed(2))
+      setFanSpeed(Math.floor(Math.random() * 2000 + 1000))
+      setPumpHz((Math.random() * 20 + 10).toFixed(1))
     }, 10000)
     
     return () => clearInterval(interval)
@@ -292,14 +285,12 @@ const HeaterControl = ({ readOnly = false }) => {
           readOnly={readOnly}
         />
 
-        {/* Level Display with Burner Core Temp */}
+        {/* Control Row: Level and Temperature */}
         <HStack spacing={4} align="center" justify="space-between">
-          <HStack spacing={3} align="center">
-            <Text color="gray.300" fontSize="md" fontWeight="medium" minW="100px">
-              Level:
-            </Text>
+          <HStack spacing={2} align="center">
+            <Gear size={18} weight="fill" color="#48BB78" />
             <Text
-              color="brand.400"
+              color="#48BB78"
               fontSize="lg"
               fontWeight="bold"
               minW="40px"
@@ -317,59 +308,87 @@ const HeaterControl = ({ readOnly = false }) => {
               />
             )}
           </HStack>
-          {burnerCoreTemp !== null && (
-            <HStack spacing={2} align="center">
-              <FlameIcon size={18} color="#F6AD55" />
-              <Text
-                color="orange.400"
-                fontSize="md"
-                fontWeight="semibold"
-              >
-                {burnerCoreTemp}°C
-              </Text>
-            </HStack>
-          )}
+          {(() => {
+            // Show ambient temp when idle and off, otherwise show core temp
+            const displayTemp = (!powerOn && runStep === 'Idle' && heaterAmbientTemp !== null) 
+              ? heaterAmbientTemp 
+              : burnerCoreTemp
+            const showTemp = displayTemp !== null && displayTemp !== undefined
+            
+            return showTemp ? (
+              <HStack spacing={2} align="center">
+                <Flame size={18} weight="fill" color="#FB923C" />
+                <Text
+                  color="#FB923C"
+                  fontSize="md"
+                  fontWeight="semibold"
+                >
+                  {displayTemp}°C
+                </Text>
+              </HStack>
+            ) : null
+          })()}
         </HStack>
 
-        {/* Fuel Row */}
+        {/* Electrical Row: Voltage and Current */}
         <HStack spacing={4} align="center" justify="space-between">
           <HStack spacing={2} align="center">
-            <FuelPumpIcon size={18} color="#9F7AEA" />
-            <Text color="gray.300" fontSize="sm">
-              Lifetime:
+            <BatteryCharging size={18} weight="fill" color="#FBBF24" />
+            <Text color="#FBBF24" fontSize="md" fontWeight="semibold">
+              {voltage} V
             </Text>
-            <Text color="purple.400" fontSize="md" fontWeight="semibold">
+          </HStack>
+          <HStack spacing={2} align="center">
+            <Lightning size={18} weight="fill" color="#FBBF24" />
+            <Text color="#FBBF24" fontSize="md" fontWeight="semibold">
+              {current} A
+            </Text>
+          </HStack>
+        </HStack>
+
+        {/* Fuel Row: Lifetime and Rate */}
+        <HStack spacing={4} align="center" justify="space-between">
+          <HStack spacing={2} align="center">
+            <GasPump size={18} weight="fill" color="#38B2AC" />
+            <Text color="#38B2AC" fontSize="md" fontWeight="semibold">
               {lifetimeFuel} L
             </Text>
           </HStack>
           <HStack spacing={2} align="center">
-            <GaugeIcon size={18} color="#38B2AC" />
-            <Text color="gray.300" fontSize="sm">
-              Rate:
-            </Text>
-            <Text color="teal.400" fontSize="md" fontWeight="semibold">
+            <Gauge size={18} weight="fill" color="#38B2AC" />
+            <Text color="#38B2AC" fontSize="md" fontWeight="semibold">
               {fuelConsumptionRate} L/hr
             </Text>
           </HStack>
         </HStack>
 
-        {/* Runtime Row */}
+        {/* Performance Row: Fan Speed and Pump Hz */}
         <HStack spacing={4} align="center" justify="space-between">
           <HStack spacing={2} align="center">
-            <HourglassIcon size={18} color="#4299E1" />
-            <Text color="gray.300" fontSize="sm">
-              Total Runtime:
+            <Wind size={18} weight="fill" color="#EC4899" />
+            <Text color="pink.400" fontSize="md" fontWeight="semibold">
+              {fanSpeed} RPM
             </Text>
-            <Text color="blue.400" fontSize="md" fontWeight="semibold">
+          </HStack>
+          <HStack spacing={2} align="center">
+            <WaveSine size={18} weight="fill" color="#A855F7" />
+            <Text color="#A855F7" fontSize="md" fontWeight="semibold">
+              {pumpHz} Hz
+            </Text>
+          </HStack>
+        </HStack>
+
+        {/* Runtime Row: Total and Session */}
+        <HStack spacing={4} align="center" justify="space-between">
+          <HStack spacing={2} align="center">
+            <Hourglass size={18} weight="fill" color="#4299E1" />
+            <Text color="#4299E1" fontSize="md" fontWeight="semibold">
               {totalRuntime} hrs
             </Text>
           </HStack>
           <HStack spacing={2} align="center">
-            <StopwatchIcon size={18} color="#48BB78" />
-            <Text color="gray.300" fontSize="sm">
-              Session:
-            </Text>
-            <Text color="green.400" fontSize="md" fontWeight="semibold">
+            <Timer size={18} weight="fill" color="#4299E1" />
+            <Text color="#4299E1" fontSize="md" fontWeight="semibold">
               {formatSessionRuntime(sessionRuntime)}
             </Text>
           </HStack>
