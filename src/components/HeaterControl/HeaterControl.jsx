@@ -382,37 +382,47 @@ const HeaterControl = ({ readOnly = false }) => {
       opacity={readOnly ? 0.9 : 1}
     >
       <VStack spacing={6} align="stretch">
-        <HStack justify="space-between">
-          <Text fontSize="xl" fontWeight="bold" color="white">
-            Heater Control
-          </Text>
-          {isConnected && (
-            <Box
-              w={3}
-              h={3}
-              borderRadius="full"
-              bg="green.400"
-              title="WebSocket connected"
-            />
-          )}
-        </HStack>
-
-        {/* Current Time (UTC) with Sync Button */}
-        {!readOnly && (
-          <HStack spacing={2} align="center" justify="center">
-            <Text color="gray.300" fontSize="sm" fontWeight="medium">
-              {currentTime} UTC
+        {/* Header: Title, UTC Time, Socket Indicator */}
+        <HStack spacing={0} align="center" w="100%">
+          {/* Left: Title */}
+          <Box flex={1} display="flex" justifyContent="flex-start">
+            <Text fontSize="xl" fontWeight="bold" color="white">
+              Heater
             </Text>
-            <IconButton
-              icon={<ArrowsLeftRight size={16} />}
-              size="xs"
-              variant="ghost"
-              colorScheme="brand"
-              aria-label="Sync time"
-              onClick={onTimeSyncModalOpen}
-            />
-          </HStack>
-        )}
+          </Box>
+          
+          {/* Center: UTC Time with Sync Button */}
+          <Box flex={1} display="flex" justifyContent="center">
+            {!readOnly && (
+              <HStack spacing={2} align="center">
+                <Text color="gray.300" fontSize="sm" fontWeight="medium">
+                  {currentTime} UTC
+                </Text>
+                <IconButton
+                  icon={<ArrowsLeftRight size={16} />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="brand"
+                  aria-label="Sync time"
+                  onClick={onTimeSyncModalOpen}
+                />
+              </HStack>
+            )}
+          </Box>
+          
+          {/* Right: Socket Indicator */}
+          <Box flex={1} display="flex" justifyContent="flex-end">
+            {isConnected && (
+              <Box
+                w={3}
+                h={3}
+                borderRadius="full"
+                bg="green.400"
+                title="WebSocket connected"
+              />
+            )}
+          </Box>
+        </HStack>
 
         {/* Operating Mode Selector */}
         <ButtonGroup isAttached variant="outline" size="sm" w="100%">
