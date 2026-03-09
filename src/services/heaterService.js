@@ -94,3 +94,23 @@ export const sendModeCommand = async (modeValue) => {
   
   return sendCommand('MODE', numericValue)
 }
+
+/**
+ * Get current heater status (authenticated endpoint)
+ * @returns {Promise<{success: boolean, data?: object, error?: string}>}
+ */
+export const getHeaterStatus = async () => {
+  try {
+    const response = await api.get('/users/heater/status')
+    return {
+      success: true,
+      data: response.data,
+    }
+  } catch (error) {
+    console.error('Get heater status error:', error)
+    return {
+      success: false,
+      error: error.response?.data?.message || error.response?.data?.error || 'Failed to get heater status',
+    }
+  }
+}

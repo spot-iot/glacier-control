@@ -35,7 +35,8 @@ import FanIcon from '../Icons/FanIcon'
 import GasCanIcon from '../Icons/GasCanIcon'
 import PowerToggle from './PowerToggle'
 import LevelSelectModal from './LevelSelectModal'
-import { sendPowerCommand, sendLevelCommand, sendTimeSyncCommand, sendModeCommand } from '../../services/heaterService'
+import { sendPowerCommand, sendLevelCommand, sendTimeSyncCommand, sendModeCommand, getHeaterStatus } from '../../services/heaterService'
+import { publicApiMethods } from '../../services/publicApi'
 import { useHeaterTelemetry } from '../../hooks/useHeaterTelemetry'
 import { usePendingCommands } from '../../contexts/PendingCommandsContext'
 
@@ -239,6 +240,54 @@ const HeaterControl = ({ readOnly = false }) => {
 
   // Connect to WebSocket telemetry
   const { isConnected } = useHeaterTelemetry(handleTelemetryUpdate)
+
+  // Fetch initial state on mount
+  useEffect(() => {
+    const fetchInitialState = async () => {
+      try {
+        let response
+        if (readOnly) {
+          // Use public API for read-only view
+          response = await publicApiMethods.getHeaterStatus()
+        } else {
+          // Use authenticated API
+          const result = await getHeaterStatus()
+          if (!result.success) {
+            console.warn('Failed to fetch initial heater status:', result.error)
+            return
+          }
+          response = { data: result.data }
+        }
+
+        // Transform API response to match WebSocket format
+        // API response has raw_telemetry wrapper, WebSocket doesn't
+        const apiData = response.data
+        const telemetryData = apiData.raw_telemetry || apiData
+
+        // Transform to match WebSocket format expected by handleTelemetryUpdate
+        const transformedData = {
+          powerOn: telemetryData.heater?.system?.power === 'ON' || telemetryData.heater?.system?.power === 1,
+          level: telemetryData.heater?.performance?.current_gear,
+          runStep: telemetryData.heater?.system?.run_step || 'Unknown',
+          operatingMode: telemetryData.glacier_mode?.toUpperCase() || 'LEVEL',
+          voltageV: telemetryData.heater?.system?.voltage_v,
+          burnerCoreTemp: telemetryData.heater?.thermals?.burner_core_c,
+          heaterAmbientTemp: telemetryData.heater?.thermals?.heater_ambient_c,
+          timestamp: telemetryData.timestamp_utc_ms || apiData.timestamp_utc_ms,
+          deviceUid: telemetryData.device_uid || apiData.device_uid,
+        }
+
+        // Use the same callback to populate state
+        handleTelemetryUpdate(transformedData)
+      } catch (error) {
+        console.error('Error fetching initial heater state:', error)
+        // Silently fail - WebSocket will eventually provide data
+      }
+    }
+
+    fetchInitialState()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readOnly]) // Only fetch once on mount or when readOnly changes
 
   const handlePowerChange = async (newPowerState) => {
     if (readOnly) return

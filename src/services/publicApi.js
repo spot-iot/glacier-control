@@ -21,7 +21,7 @@ export const publicApiMethods = {
   getForecast: () => publicApi.get('/weather/forecast'),
 
   // Heater status (read-only)
-  getHeaterStatus: () => publicApi.get('/heater/status'),
+  getHeaterStatus: () => publicApi.get('/public/heater/status'),
   getHeaterSetpoint: () => publicApi.get('/heater/setpoint'),
   // Note: No POST/PUT/DELETE methods for heater control
 
