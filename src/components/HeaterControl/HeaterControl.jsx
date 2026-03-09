@@ -74,7 +74,7 @@ const HeaterControl = ({ readOnly = false }) => {
   const pendingModeCommand = getPendingCommand('MODE')
   const hasPendingCommand = pendingPowerCommand || pendingLevelCommand || pendingModeCommand
 
-  // Get pending mode value (if any)
+  // Get pending mode value (if any) - convert numeric to string for display
   const pendingModeValue = pendingModeCommand?.value
   const pendingModeName = pendingModeValue !== undefined 
     ? { 0: 'LEVEL', 1: 'AUTO', 2: 'FROST' }[pendingModeValue]
@@ -118,6 +118,14 @@ const HeaterControl = ({ readOnly = false }) => {
     setLevel(telemetry.level)
     if (telemetry.runStep) {
       setRunStep(telemetry.runStep)
+    }
+    // Always update operating mode if provided (even if empty string)
+    if (telemetry.operatingMode !== undefined && telemetry.operatingMode !== null) {
+      console.log('🔄 Updating operating mode from telemetry:', telemetry.operatingMode)
+      setOperatingMode(telemetry.operatingMode)
+    }
+    if (telemetry.voltageV !== undefined && telemetry.voltageV !== null) {
+      setVoltage(telemetry.voltageV)
     }
     if (telemetry.burnerCoreTemp !== undefined && telemetry.burnerCoreTemp !== null) {
       setBurnerCoreTemp(telemetry.burnerCoreTemp)
@@ -191,7 +199,7 @@ const HeaterControl = ({ readOnly = false }) => {
     setFuelGauge((Math.random() * 50 + 20).toFixed(1)) // 20-70 L or %
     setHoursTillEmpty((Math.random() * 100 + 10).toFixed(1)) // 10-110 hrs
     setTotalRuntime((Math.random() * 1000 + 100).toFixed(1))
-    setVoltage((Math.random() * 5 + 10).toFixed(1)) // 10-15V
+    // Voltage is now from telemetry, not dummy data
     setCurrent((Math.random() * 2 + 0.5).toFixed(2)) // 0.5-2.5A
     setFanSpeed(Math.floor(Math.random() * 2000 + 1000)) // 1000-3000 RPM
     setPumpHz((Math.random() * 20 + 10).toFixed(1)) // 10-30 Hz
@@ -203,7 +211,7 @@ const HeaterControl = ({ readOnly = false }) => {
       setFuelGauge((Math.random() * 50 + 20).toFixed(1))
       setHoursTillEmpty((Math.random() * 100 + 10).toFixed(1))
       setTotalRuntime((Math.random() * 1000 + 100).toFixed(1))
-      setVoltage((Math.random() * 5 + 10).toFixed(1))
+      // Voltage is now from telemetry, not dummy data
       setCurrent((Math.random() * 2 + 0.5).toFixed(2))
       setFanSpeed(Math.floor(Math.random() * 2000 + 1000))
       setPumpHz((Math.random() * 20 + 10).toFixed(1))
@@ -338,10 +346,10 @@ const HeaterControl = ({ readOnly = false }) => {
     const modeValues = { 'LEVEL': 0, 'AUTO': 1, 'FROST': 2 }
     const commandValue = modeValues[newMode]
 
-    const result = await sendModeCommand(commandValue)
+    const result = await sendModeCommand(newMode)
     
     if (result.success && result.commandId) {
-      // Add to pending commands
+      // Add to pending commands (store numeric value for tracking)
       addPendingCommand(result.commandId, {
         type: 'MODE',
         value: commandValue,
@@ -543,7 +551,7 @@ const HeaterControl = ({ readOnly = false }) => {
           <HStack spacing={2} align="center">
             <BatteryCharging size={18} weight="fill" color="#FBBF24" />
             <Text color="#FBBF24" fontSize="md" fontWeight="semibold">
-              {voltage} V
+              {typeof voltage === 'number' ? voltage.toFixed(1) : '0.0'} V
             </Text>
           </HStack>
           <HStack spacing={2} align="center">

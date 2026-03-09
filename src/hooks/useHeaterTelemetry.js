@@ -134,7 +134,8 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
         const powerState = heartbeat.heater?.system?.power
         const level = heartbeat.heater?.performance?.current_gear
         const runStep = heartbeat.heater?.system?.run_step
-        const operatingModeRaw = heartbeat.heater?.system?.operating_mode
+        const voltageV = heartbeat.heater?.system?.voltage_v
+        const glacierModeRaw = heartbeat.glacier_mode // Top-level field
         const burnerCoreTemp = heartbeat.heater?.thermals?.burner_core_c
         const heaterAmbientTemp = heartbeat.heater?.thermals?.heater_ambient_c
         const deviceUid = heartbeat.device_uid
@@ -142,14 +143,18 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
 
         // Convert operating mode to string (handle both string and number)
         let operatingMode = 'LEVEL' // default
-        if (operatingModeRaw !== undefined && operatingModeRaw !== null) {
-          if (typeof operatingModeRaw === 'string') {
-            operatingMode = operatingModeRaw.toUpperCase()
-          } else if (typeof operatingModeRaw === 'number') {
+        if (glacierModeRaw !== undefined && glacierModeRaw !== null) {
+          if (typeof glacierModeRaw === 'string') {
+            operatingMode = glacierModeRaw.toUpperCase()
+            console.log(`📋 Extracted glacier_mode: "${glacierModeRaw}" -> "${operatingMode}"`)
+          } else if (typeof glacierModeRaw === 'number') {
             // Map: 0=LEVEL, 1=AUTO, 2=FROST
             const modeMap = { 0: 'LEVEL', 1: 'AUTO', 2: 'FROST' }
-            operatingMode = modeMap[operatingModeRaw] || 'LEVEL'
+            operatingMode = modeMap[glacierModeRaw] || 'LEVEL'
+            console.log(`📋 Extracted glacier_mode: ${glacierModeRaw} -> "${operatingMode}"`)
           }
+        } else {
+          console.log('⚠️ glacier_mode is missing or null, defaulting to LEVEL')
         }
 
         // Validate required fields
@@ -175,7 +180,9 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
           level,
           deviceUid,
           timestamp,
-          hasCommand: !!heartbeat.command
+          hasCommand: !!heartbeat.command,
+          glacierMode: glacierModeRaw,
+          operatingMode
         })
 
         // Only update if timestamp is newer (avoid stale data)
@@ -190,6 +197,7 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
               level,
               runStep: runStep || 'Unknown',
               operatingMode,
+              voltageV: voltageV !== undefined ? voltageV : null,
               burnerCoreTemp: burnerCoreTemp !== undefined ? burnerCoreTemp : null,
               heaterAmbientTemp: heaterAmbientTemp !== undefined ? heaterAmbientTemp : null,
               timestamp,
