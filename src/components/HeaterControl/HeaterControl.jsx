@@ -555,7 +555,7 @@ const HeaterControl = ({ readOnly = false }) => {
             </Text>
           </HStack>
           <HStack spacing={2} align="center">
-            <Lightning size={18} weight="regular" color="#FBBF24" />
+            <Lightning size={18} weight="fill" color="#FBBF24" />
             <Text color="#FBBF24" fontSize="md" fontWeight="semibold">
               {current} A
             </Text>
@@ -610,18 +610,18 @@ const HeaterControl = ({ readOnly = false }) => {
           </HStack>
         </HStack>
 
-        {/* Runtime Row: Total and Session */}
+        {/* Runtime Row: Session and Total */}
         <HStack spacing={4} align="center" justify="space-between">
-          <HStack spacing={2} align="center">
-            <Hourglass size={18} weight="regular" color="#4299E1" />
-            <Text color="#4299E1" fontSize="md" fontWeight="semibold">
-              {totalRuntime} hrs
-            </Text>
-          </HStack>
           <HStack spacing={2} align="center">
             <Timer size={18} weight="regular" color="#4299E1" />
             <Text color="#4299E1" fontSize="md" fontWeight="semibold">
               {formatSessionRuntime(sessionRuntime)}
+            </Text>
+          </HStack>
+          <HStack spacing={2} align="center">
+            <Hourglass size={18} weight="regular" color="#4299E1" />
+            <Text color="#4299E1" fontSize="md" fontWeight="semibold">
+              {totalRuntime} hrs
             </Text>
           </HStack>
         </HStack>
