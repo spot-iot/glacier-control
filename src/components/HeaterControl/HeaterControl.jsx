@@ -504,7 +504,7 @@ const HeaterControl = ({ readOnly = false }) => {
         {/* Control Row: Level and Temperature */}
         <HStack spacing={4} align="center" justify="space-between">
           <HStack spacing={2} align="center">
-            <Gear size={18} weight="fill" color="#48BB78" />
+            <Gear size={18} weight="regular" color="#48BB78" />
             <Text
               color="#48BB78"
               fontSize="lg"
@@ -533,7 +533,7 @@ const HeaterControl = ({ readOnly = false }) => {
             
             return showTemp ? (
               <HStack spacing={2} align="center">
-                <Fire size={18} weight="fill" color="#FB923C" />
+                <Fire size={18} weight="regular" color="#FB923C" />
                 <Text
                   color="#FB923C"
                   fontSize="md"
@@ -549,13 +549,13 @@ const HeaterControl = ({ readOnly = false }) => {
         {/* Electrical Row: Voltage and Current */}
         <HStack spacing={4} align="center" justify="space-between">
           <HStack spacing={2} align="center">
-            <BatteryCharging size={18} weight="fill" color="#FBBF24" />
+            <BatteryCharging size={18} weight="regular" color="#FBBF24" />
             <Text color="#FBBF24" fontSize="md" fontWeight="semibold">
               {typeof voltage === 'number' ? voltage.toFixed(1) : '0.0'} V
             </Text>
           </HStack>
           <HStack spacing={2} align="center">
-            <Lightning size={18} weight="fill" color="#FBBF24" />
+            <Lightning size={18} weight="regular" color="#FBBF24" />
             <Text color="#FBBF24" fontSize="md" fontWeight="semibold">
               {current} A
             </Text>
@@ -565,13 +565,13 @@ const HeaterControl = ({ readOnly = false }) => {
         {/* Fuel Row 1: Gauge and Lifetime */}
         <HStack spacing={4} align="center" justify="space-between">
           <HStack spacing={2} align="center">
-            <DropHalf size={18} weight="fill" color="#38B2AC" />
+            <Gauge size={18} weight="regular" color="#38B2AC" />
             <Text color="#38B2AC" fontSize="md" fontWeight="semibold">
               {fuelGauge} L
             </Text>
           </HStack>
           <HStack spacing={2} align="center">
-            <GasPump size={18} weight="fill" color="#38B2AC" />
+            <GasPump size={18} weight="regular" color="#38B2AC" />
             <Text color="#38B2AC" fontSize="md" fontWeight="semibold">
               {lifetimeFuel} L
             </Text>
@@ -581,7 +581,7 @@ const HeaterControl = ({ readOnly = false }) => {
         {/* Fuel Row 2: Rate and Hours Till Empty */}
         <HStack spacing={4} align="center" justify="space-between">
           <HStack spacing={2} align="center">
-            <Gauge size={18} weight="fill" color="#38B2AC" />
+            <DropHalf size={18} weight="fill" color="#38B2AC" />
             <Text color="#38B2AC" fontSize="md" fontWeight="semibold">
               {fuelConsumptionRate} L/hr
             </Text>
@@ -597,13 +597,13 @@ const HeaterControl = ({ readOnly = false }) => {
         {/* Performance Row: Fan Speed and Pump Hz */}
         <HStack spacing={4} align="center" justify="space-between">
           <HStack spacing={2} align="center">
-            <FanIcon size={18} weight="fill" color="#EC4899" />
+            <FanIcon size={18} weight="regular" color="#EC4899" />
             <Text color="pink.400" fontSize="md" fontWeight="semibold">
               {fanSpeed} RPM
             </Text>
           </HStack>
           <HStack spacing={2} align="center">
-            <WaveSine size={18} weight="fill" color="#A855F7" />
+            <WaveSine size={18} weight="regular" color="#A855F7" />
             <Text color="#A855F7" fontSize="md" fontWeight="semibold">
               {pumpHz} Hz
             </Text>
@@ -613,13 +613,13 @@ const HeaterControl = ({ readOnly = false }) => {
         {/* Runtime Row: Total and Session */}
         <HStack spacing={4} align="center" justify="space-between">
           <HStack spacing={2} align="center">
-            <Hourglass size={18} weight="fill" color="#4299E1" />
+            <Hourglass size={18} weight="regular" color="#4299E1" />
             <Text color="#4299E1" fontSize="md" fontWeight="semibold">
               {totalRuntime} hrs
             </Text>
           </HStack>
           <HStack spacing={2} align="center">
-            <Timer size={18} weight="fill" color="#4299E1" />
+            <Timer size={18} weight="regular" color="#4299E1" />
             <Text color="#4299E1" fontSize="md" fontWeight="semibold">
               {formatSessionRuntime(sessionRuntime)}
             </Text>
