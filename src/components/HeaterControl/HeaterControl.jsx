@@ -395,7 +395,7 @@ const HeaterControl = ({ readOnly = false }) => {
           <Box flex={1} display="flex" justifyContent="center">
             {!readOnly && (
               <HStack spacing={2} align="center">
-                <Text color="gray.300" fontSize="sm" fontWeight="medium">
+                <Text color="gray.300" fontSize="xs" fontWeight="medium">
                   {currentTime} UTC
                 </Text>
                 <IconButton
