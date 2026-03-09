@@ -420,7 +420,7 @@ const HeaterControl = ({ readOnly = false }) => {
             flex={1}
             onClick={() => handleModeChange('LEVEL')}
             isDisabled={readOnly}
-            colorScheme={operatingMode === 'LEVEL' && !pendingModeCommand ? 'brand' : 'gray'}
+            variant={operatingMode === 'LEVEL' && !pendingModeCommand ? 'solid' : 'outline'}
             bg={
               operatingMode === 'LEVEL' && !pendingModeCommand 
                 ? 'brand.400' 
@@ -434,6 +434,13 @@ const HeaterControl = ({ readOnly = false }) => {
                 : pendingModeName === 'LEVEL' 
                   ? 'gray.200' 
                   : 'gray.300'
+            }
+            borderColor={
+              operatingMode === 'LEVEL' && !pendingModeCommand
+                ? 'transparent'
+                : pendingModeName === 'LEVEL'
+                  ? 'transparent'
+                  : 'gray.600'
             }
             _hover={{
               bg: operatingMode === 'LEVEL' && !pendingModeCommand ? 'brand.500' : 'gray.700',
@@ -445,7 +452,7 @@ const HeaterControl = ({ readOnly = false }) => {
             flex={1}
             onClick={() => handleModeChange('AUTO')}
             isDisabled={readOnly}
-            colorScheme={operatingMode === 'AUTO' && !pendingModeCommand ? 'brand' : 'gray'}
+            variant={operatingMode === 'AUTO' && !pendingModeCommand ? 'solid' : 'outline'}
             bg={
               operatingMode === 'AUTO' && !pendingModeCommand 
                 ? 'brand.400' 
@@ -459,6 +466,13 @@ const HeaterControl = ({ readOnly = false }) => {
                 : pendingModeName === 'AUTO' 
                   ? 'gray.200' 
                   : 'gray.300'
+            }
+            borderColor={
+              operatingMode === 'AUTO' && !pendingModeCommand
+                ? 'transparent'
+                : pendingModeName === 'AUTO'
+                  ? 'transparent'
+                  : 'gray.600'
             }
             _hover={{
               bg: operatingMode === 'AUTO' && !pendingModeCommand ? 'brand.500' : 'gray.700',
@@ -470,7 +484,7 @@ const HeaterControl = ({ readOnly = false }) => {
             flex={1}
             onClick={() => handleModeChange('FROST')}
             isDisabled={readOnly}
-            colorScheme={operatingMode === 'FROST' && !pendingModeCommand ? 'brand' : 'gray'}
+            variant={operatingMode === 'FROST' && !pendingModeCommand ? 'solid' : 'outline'}
             bg={
               operatingMode === 'FROST' && !pendingModeCommand 
                 ? 'brand.400' 
@@ -484,6 +498,13 @@ const HeaterControl = ({ readOnly = false }) => {
                 : pendingModeName === 'FROST' 
                   ? 'gray.200' 
                   : 'gray.300'
+            }
+            borderColor={
+              operatingMode === 'FROST' && !pendingModeCommand
+                ? 'transparent'
+                : pendingModeName === 'FROST'
+                  ? 'transparent'
+                  : 'gray.600'
             }
             _hover={{
               bg: operatingMode === 'FROST' && !pendingModeCommand ? 'brand.500' : 'gray.700',

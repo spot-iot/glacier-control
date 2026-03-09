@@ -3,13 +3,9 @@ import { HStack, Switch, Text, Box } from '@chakra-ui/react'
 const PowerToggle = ({ isOn, onChange, runStep, readOnly }) => {
   return (
     <HStack spacing={4} align="center">
-      <Text color="gray.300" fontSize="md" fontWeight="medium" minW="80px">
-        Power:
-      </Text>
       <HStack spacing={2}>
         <Switch
           size="lg"
-          colorScheme="brand"
           isChecked={isOn}
           onChange={(e) => onChange(e.target.checked)}
           isDisabled={readOnly}
