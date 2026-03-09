@@ -384,15 +384,15 @@ const HeaterControl = ({ readOnly = false }) => {
       <VStack spacing={6} align="stretch">
         {/* Header: Title, UTC Time, Socket Indicator */}
         <HStack spacing={0} align="center" w="100%">
-          {/* Left: Title */}
+          {/* Left: Title (20%) */}
           <Box flex={1} display="flex" justifyContent="flex-start">
             <Text fontSize="xl" fontWeight="bold" color="white">
               Heater
             </Text>
           </Box>
           
-          {/* Center: UTC Time with Sync Button */}
-          <Box flex={1} display="flex" justifyContent="center">
+          {/* Center: UTC Time with Sync Button (60%) */}
+          <Box flex={3} display="flex" justifyContent="center">
             {!readOnly && (
               <HStack spacing={2} align="center">
                 <Text color="gray.300" fontSize="xs" fontWeight="medium">
@@ -410,7 +410,7 @@ const HeaterControl = ({ readOnly = false }) => {
             )}
           </Box>
           
-          {/* Right: Socket Indicator */}
+          {/* Right: Socket Indicator (20%) */}
           <Box flex={1} display="flex" justifyContent="flex-end">
             {isConnected && (
               <Box
