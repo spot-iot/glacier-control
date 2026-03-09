@@ -2,7 +2,8 @@ import axios from 'axios'
 
 // Public API client - READ ONLY endpoints only
 // This ensures no write operations can be performed from public view
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://your-xano-instance.xano.app/api/v1'
+// Uses the same base URL as authenticated API, but calls public endpoints
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://x8ki-letl-twmt.n7.xano.io/api:Gw3_pzGF'
 
 const publicApi = axios.create({
   baseURL: API_BASE_URL,
