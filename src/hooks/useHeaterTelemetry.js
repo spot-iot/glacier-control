@@ -138,6 +138,7 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
         const glacierModeRaw = heartbeat.glacier_mode // Top-level field
         const burnerCoreTemp = heartbeat.heater?.thermals?.burner_core_c
         const heaterAmbientTemp = heartbeat.heater?.thermals?.heater_ambient_c
+        const actualPumpHz = heartbeat.heater?.performance?.actual_pump_hz
         const deviceUid = heartbeat.device_uid
         const timestamp = heartbeat.timestamp_utc_ms
 
@@ -200,6 +201,7 @@ export const useHeaterTelemetry = (onTelemetryUpdate) => {
               voltageV: voltageV !== undefined ? voltageV : null,
               burnerCoreTemp: burnerCoreTemp !== undefined ? burnerCoreTemp : null,
               heaterAmbientTemp: heaterAmbientTemp !== undefined ? heaterAmbientTemp : null,
+              pumpHz: actualPumpHz !== undefined ? actualPumpHz : null,
               timestamp,
               deviceUid,
             })

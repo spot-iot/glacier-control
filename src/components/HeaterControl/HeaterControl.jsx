@@ -134,6 +134,11 @@ const HeaterControl = ({ readOnly = false }) => {
     if (telemetry.heaterAmbientTemp !== undefined && telemetry.heaterAmbientTemp !== null) {
       setHeaterAmbientTemp(telemetry.heaterAmbientTemp)
     }
+    if (telemetry.pumpHz !== undefined && telemetry.pumpHz !== null) {
+      const pumpHzValue = Number(telemetry.pumpHz)
+      console.log('🔄 Updating pumpHz from telemetry:', pumpHzValue)
+      setPumpHz(pumpHzValue)
+    }
     
     // Update last heartbeat time for "seconds since refresh" calculation
     if (telemetry.timestamp) {
@@ -203,7 +208,7 @@ const HeaterControl = ({ readOnly = false }) => {
     // Voltage is now from telemetry, not dummy data
     setCurrent((Math.random() * 2 + 0.5).toFixed(2)) // 0.5-2.5A
     setFanSpeed(Math.floor(Math.random() * 2000 + 1000)) // 1000-3000 RPM
-    setPumpHz((Math.random() * 20 + 10).toFixed(1)) // 10-30 Hz
+    // Pump Hz is now from telemetry, not dummy data
     
     // Update dummy data every 10 seconds
     const interval = setInterval(() => {
@@ -215,7 +220,7 @@ const HeaterControl = ({ readOnly = false }) => {
       // Voltage is now from telemetry, not dummy data
       setCurrent((Math.random() * 2 + 0.5).toFixed(2))
       setFanSpeed(Math.floor(Math.random() * 2000 + 1000))
-      setPumpHz((Math.random() * 20 + 10).toFixed(1))
+      // Pump Hz is now from telemetry, not dummy data
     }, 10000)
     
     return () => clearInterval(interval)
@@ -273,6 +278,7 @@ const HeaterControl = ({ readOnly = false }) => {
           voltageV: telemetryData.heater?.system?.voltage_v,
           burnerCoreTemp: telemetryData.heater?.thermals?.burner_core_c,
           heaterAmbientTemp: telemetryData.heater?.thermals?.heater_ambient_c,
+          pumpHz: telemetryData.heater?.performance?.actual_pump_hz,
           timestamp: telemetryData.timestamp_utc_ms || apiData.timestamp_utc_ms,
           deviceUid: telemetryData.device_uid || apiData.device_uid,
         }
